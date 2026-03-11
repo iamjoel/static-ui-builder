@@ -37,6 +37,11 @@ type EditorState = {
   title: string
 }
 
+type GeneratedMarkdownPayload = {
+  markdown: string
+  title: string
+}
+
 type CreatePageDraft = {
   summary: string
   title: string
@@ -63,11 +68,14 @@ type LibraryPageProps = {
 type EditorPageProps = {
   currentPage: SavedPage | null
   editorState: EditorState
+  imageSourceName: string | null
+  isGeneratingFromImage: boolean
   isMissingPage: boolean
   isSaving: boolean
   onBack: () => void
   onChange: (state: EditorState) => void
   onDelete: (id: string) => void
+  onGenerateFromImage: (file: File) => void
   onSave: () => void
 }
 
@@ -133,6 +141,20 @@ function createInitialMarkdown(draft: CreatePageDraft) {
     '',
     exampleDirectiveBlock,
   ].join('\n')
+}
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string')
+        resolve(reader.result)
+      else
+        reject(new Error('Failed to read image file'))
+    }
+    reader.onerror = () => reject(reader.error ?? new Error('Failed to read image file'))
+    reader.readAsDataURL(file)
+  })
 }
 
 function CreatePageModal({
@@ -365,11 +387,14 @@ function LibraryPage({
 function EditorPage({
   currentPage,
   editorState,
+  imageSourceName,
+  isGeneratingFromImage,
   isMissingPage,
   isSaving,
   onBack,
   onChange,
   onDelete,
+  onGenerateFromImage,
   onSave,
 }: EditorPageProps) {
   const deferredMarkdown = useDeferredValue(editorState.markdown)
@@ -441,7 +466,7 @@ function EditorPage({
           <button
             type="button"
             onClick={onSave}
-            disabled={isSaving}
+            disabled={isSaving || isGeneratingFromImage}
             className="rounded-md bg-[#18181b] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving ? '保存中...' : '保存修改'}
@@ -497,6 +522,49 @@ function EditorPage({
               </p>
               <p className="m-0">{formatTimestamp(currentPage.updatedAt)}</p>
             </div>
+            <div>
+              <p className="mb-1 text-xs font-medium uppercase tracking-[0.14em] text-[#71717a]">
+                图片转 Markdown
+              </p>
+              <p className="m-0">
+                {imageSourceName ? `最近一次来源: ${imageSourceName}` : '尚未上传图片'}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3 rounded-lg border border-[#e4e4e7] bg-white p-4">
+            <div>
+              <p className="mb-1 text-xs font-medium uppercase tracking-[0.14em] text-[#71717a]">
+                AI Generation
+              </p>
+              <p className="m-0 text-sm leading-6 text-[#52525b]">
+                上传一张图片，Gemini 会生成与图片内容一致的 Markdown。自定义组件只允许使用
+                {' '}
+                <code>withIconCardList</code>
+                {' '}
+                和
+                {' '}
+                <code>withIconCardItem</code>
+                。
+              </p>
+            </div>
+            <label className="inline-flex cursor-pointer items-center justify-center rounded-md border border-[#e4e4e7] bg-white px-3 py-2 text-sm text-[#18181b] transition hover:bg-[#fafafa]">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  event.currentTarget.value = ''
+                  if (file)
+                    onGenerateFromImage(file)
+                }}
+              />
+              {isGeneratingFromImage ? '生成中...' : '上传图片并生成 Markdown'}
+            </label>
+            <p className="m-0 text-xs leading-5 text-[#71717a]">
+              建议上传 5MB 以内的 PNG、JPG、WEBP 等常见图片格式。生成结果会先覆盖到当前编辑区，确认后再手动保存。
+            </p>
           </div>
         </aside>
 
@@ -537,6 +605,8 @@ function App() {
   const [feedback, setFeedback] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+  const [isGeneratingFromImage, setIsGeneratingFromImage] = useState(false)
+  const [imageSourceName, setImageSourceName] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -662,6 +732,55 @@ function App() {
     }
   }
 
+  async function handleGenerateFromImage(file: File) {
+    if (!currentPage)
+      return
+
+    if (file.size > 5 * 1024 * 1024) {
+      setFeedback('图片过大，请上传 5MB 以内的图片。')
+      return
+    }
+
+    if ((editorState.markdown.trim() || editorState.title.trim())
+      && !window.confirm('将用 AI 生成的 Markdown 覆盖当前编辑内容，是否继续？')) {
+      return
+    }
+
+    setIsGeneratingFromImage(true)
+    setFeedback(null)
+
+    try {
+      const imageDataUrl = await readFileAsDataUrl(file)
+      const response = await fetch('/api/generate-markdown', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageDataUrl,
+          mimeType: file.type || 'image/png',
+        }),
+      })
+
+      const result = await response.json() as GeneratedMarkdownPayload | { error?: string }
+      if (!response.ok || !('markdown' in result) || !('title' in result))
+        throw new Error('error' in result && result.error ? result.error : 'AI 生成失败。')
+
+      setEditorState({
+        title: result.title,
+        markdown: result.markdown,
+      })
+      setImageSourceName(file.name)
+      setFeedback(`已根据图片 ${file.name} 生成 Markdown，请检查后保存。`)
+    }
+    catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'AI 生成失败。')
+    }
+    finally {
+      setIsGeneratingFromImage(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#fafafa] text-[#09090b] lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
       <aside className="hidden border-r border-[#e4e4e7] bg-[#fcfcfc] lg:flex lg:min-h-screen lg:flex-col">
@@ -774,11 +893,14 @@ function App() {
                 <EditorPage
                   currentPage={currentPage}
                   editorState={editorState}
+                  imageSourceName={imageSourceName}
+                  isGeneratingFromImage={isGeneratingFromImage}
                   isMissingPage={isMissingPage}
                   isSaving={isSaving}
                   onBack={() => navigate({ name: 'library' })}
                   onChange={setEditorState}
                   onDelete={handleDelete}
+                  onGenerateFromImage={handleGenerateFromImage}
                   onSave={handleSave}
                 />
               )}
