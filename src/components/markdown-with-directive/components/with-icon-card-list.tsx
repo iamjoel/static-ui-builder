@@ -8,7 +8,7 @@ type WithIconListProps = WithIconCardListProps & {
 
 function WithIconCardList({ children, className }: WithIconListProps) {
   return (
-    <div className={cn('my-4 grid gap-[10px]', className)}>
+    <div className={cn('my-4 grid gap-2', className)}>
       {children}
     </div>
   )
