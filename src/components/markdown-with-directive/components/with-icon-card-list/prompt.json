@@ -1,0 +1,22 @@
+{
+  "description": "Wraps a vertical list of custom card items.",
+  "uiDescription": "Renders a vertical stack of clean white cards with subtle borders and spacing between items.",
+  "generationNotes": [
+    "Use this as a parent wrapper around one or more withIconCardItem blocks.",
+    "Keep children as directive blocks instead of mixing loose paragraphs between item blocks."
+  ],
+  "useCases": [
+    "Short highlight lists, product features, benefits, checklist-style summaries, or compact step overviews.",
+    "Works best when each child item is a short phrase, one sentence, or a very small markdown block."
+  ],
+  "fewShotExamples": [
+    {
+      "intent": "Convert three short product advantages into icon cards.",
+      "markdown": "## 核心优势\n\n::::withIconCardList\n:::withIconCardItem{icon=\"https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/26a1.svg\"}\n响应速度快，适合实时协作。\n:::\n:::withIconCardItem{icon=\"https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f512.svg\"}\n权限边界清晰，适合团队使用。\n:::\n:::withIconCardItem{icon=\"https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f4ca.svg\"}\n数据看板直观，便于快速决策。\n:::\n::::"
+    },
+    {
+      "intent": "Summarize a three-step workflow with compact card items.",
+      "markdown": "## 使用流程\n\n::::withIconCardList\n:::withIconCardItem{icon=\"https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f4e5.svg\"}\n**上传素材**\n\n拖入截图或设计稿作为输入。\n:::\n:::withIconCardItem{icon=\"https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/2699.svg\"}\n**调整参数**\n\n根据需求修改提示词和结构。\n:::\n:::withIconCardItem{icon=\"https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f680.svg\"}\n**生成结果**\n\n得到可继续编辑的 Markdown 初稿。\n:::\n::::"
+    }
+  ]
+}

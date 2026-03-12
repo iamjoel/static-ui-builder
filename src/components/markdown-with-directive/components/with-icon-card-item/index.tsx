@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import type { WithIconCardItemProps } from './markdown-with-directive-schema'
-import { cn } from '../../../utils/classnames'
+import type { WithIconCardItemProps } from '../markdown-with-directive-schema'
+import { cn } from '../../../../utils/classnames'
 
 type WithIconItemProps = WithIconCardItemProps & {
   children?: ReactNode
@@ -11,7 +11,7 @@ function WithIconCardItem({ icon, children, className, iconAlt }: WithIconItemPr
   return (
     <div
       className={cn(
-        'flex items-center gap-3 rounded-xl border border-[#e4e4e7] bg-white px-3 py-3',
+        "flex items-center gap-3 rounded-xl border border-[#e4e4e7] bg-white px-3 py-3",
         className,
       )}
     >

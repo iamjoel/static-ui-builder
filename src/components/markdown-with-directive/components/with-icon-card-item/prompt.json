@@ -1,0 +1,20 @@
+{
+  "description": "Renders one icon card item with child markdown content.",
+  "uiDescription": "Shows a rounded horizontal card with a 40px icon on the left and concise text content on the right.",
+  "generationNotes": [
+    "Usually place this inside withIconCardList.",
+    "The icon attribute must be a public http/https URL.",
+    "Put the visible text inside the directive body, not after the closing fence.",
+    "Keep content concise so it visually fits as a compact card item."
+  ],
+  "useCases": [
+    "Best for single benefits, facts, action points, feature bullets, and short status notes.",
+    "Avoid using it for long paragraphs, tables, or large multi-section content."
+  ],
+  "fewShotExamples": [
+    {
+      "intent": "Use directives only for short highlights while keeping long explanation in normal markdown.",
+      "markdown": "## 方案说明\n\n这里先用普通段落解释背景和目标，不要把整段说明都塞进指令卡片。\n\n::::withIconCardList\n:::withIconCardItem{icon=\"https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/2705.svg\"}\n重点一：输出结构固定，便于复用。\n:::\n:::withIconCardItem{icon=\"https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f4a1.svg\"}\n重点二：关键提示单独强调，方便扫读。\n:::\n::::"
+    }
+  ]
+}

@@ -1,4 +1,6 @@
 import * as z from 'zod'
+import withIconCardItemPrompt from './with-icon-card-item/prompt.json'
+import withIconCardListPrompt from './with-icon-card-list/prompt.json'
 
 const commonSchema = {
   className: z.string().min(1).optional(),
@@ -25,43 +27,32 @@ type DirectiveRegistryEntry = {
   blockKind: 'container' | 'leaf'
   description: string
   directiveName: string
+  fewShotExamples: Array<{
+    intent: string
+    markdown: string
+  }>
   generationNotes: string[]
   uiDescription: string
   useCases: string[]
 }
 
+const directivePromptRegistry = {
+  withiconcardlist: withIconCardListPrompt,
+  withiconcarditem: withIconCardItemPrompt,
+} as const satisfies Record<keyof typeof directivePropsSchemas, Omit<DirectiveRegistryEntry, 'allowedAttributes' | 'blockKind' | 'directiveName'>>
+
 export const directiveComponentRegistry: Record<keyof typeof directivePropsSchemas, DirectiveRegistryEntry> = {
   withiconcardlist: {
     directiveName: 'withIconCardList',
     blockKind: 'container',
-    description: 'Wraps a vertical list of custom card items.',
-    uiDescription: 'Renders a vertical stack of clean white cards with subtle borders and spacing between items.',
     allowedAttributes: ['className'],
-    generationNotes: [
-      'Use this as a parent wrapper around one or more withIconCardItem blocks.',
-      'Keep children as directive blocks instead of mixing loose paragraphs between item blocks.',
-    ],
-    useCases: [
-      'Short highlight lists, product features, benefits, checklist-style summaries, or compact step overviews.',
-      'Works best when each child item is a short phrase, one sentence, or a very small markdown block.',
-    ],
+    ...directivePromptRegistry.withiconcardlist,
   },
   withiconcarditem: {
     directiveName: 'withIconCardItem',
     blockKind: 'container',
-    description: 'Renders one icon card item with child markdown content.',
-    uiDescription: 'Shows a rounded horizontal card with a 40px icon on the left and concise text content on the right.',
     allowedAttributes: ['icon', 'className'],
-    generationNotes: [
-      'Usually place this inside withIconCardList.',
-      'The icon attribute must be a public http/https URL.',
-      'Put the visible text inside the directive body, not after the closing fence.',
-      'Keep content concise so it visually fits as a compact card item.',
-    ],
-    useCases: [
-      'Best for single benefits, facts, action points, feature bullets, and short status notes.',
-      'Avoid using it for long paragraphs, tables, or large multi-section content.',
-    ],
+    ...directivePromptRegistry.withiconcarditem,
   },
 }
 
@@ -197,7 +188,9 @@ export function validateDirectiveStructure(markdown: string): DirectiveStructure
 }
 
 export function getDirectiveGenerationGuide() {
-  const registryGuide = Object.values(directiveComponentRegistry)
+  const definitions = Object.values(directiveComponentRegistry)
+
+  const registryGuide = definitions
     .map((definition) => {
       const attributes = definition.allowedAttributes.length > 0
         ? definition.allowedAttributes.join(', ')
@@ -218,67 +211,18 @@ export function getDirectiveGenerationGuide() {
     })
     .join('\n\n')
 
-  const fewShotExamples = [
-    [
-      'Few-shot example 1:',
-      'Intent: Convert three short product advantages into icon cards.',
-      'Markdown:',
-      '## 核心优势',
-      '',
-      '::::withIconCardList',
-      ':::withIconCardItem{icon="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/26a1.svg"}',
-      '响应速度快，适合实时协作。',
-      ':::',
-      ':::withIconCardItem{icon="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f512.svg"}',
-      '权限边界清晰，适合团队使用。',
-      ':::',
-      ':::withIconCardItem{icon="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f4ca.svg"}',
-      '数据看板直观，便于快速决策。',
-      ':::',
-      '::::',
-    ].join('\n'),
-    [
-      'Few-shot example 2:',
-      'Intent: Summarize a three-step workflow with compact card items.',
-      'Markdown:',
-      '## 使用流程',
-      '',
-      '::::withIconCardList',
-      ':::withIconCardItem{icon="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f4e5.svg"}',
-      '**上传素材**',
-      '',
-      '拖入截图或设计稿作为输入。',
-      ':::',
-      ':::withIconCardItem{icon="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/2699.svg"}',
-      '**调整参数**',
-      '',
-      '根据需求修改提示词和结构。',
-      ':::',
-      ':::withIconCardItem{icon="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f680.svg"}',
-      '**生成结果**',
-      '',
-      '得到可继续编辑的 Markdown 初稿。',
-      ':::',
-      '::::',
-    ].join('\n'),
-    [
-      'Few-shot example 3:',
-      'Intent: Use normal markdown for long explanations, and directives only for short highlights.',
-      'Markdown:',
-      '## 方案说明',
-      '',
-      '这里先用普通段落解释背景和目标，不要把整段说明都塞进指令卡片。',
-      '',
-      '::::withIconCardList',
-      ':::withIconCardItem{icon="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/2705.svg"}',
-      '重点一：输出结构固定，便于复用。',
-      ':::',
-      ':::withIconCardItem{icon="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f4a1.svg"}',
-      '重点二：关键提示单独强调，方便扫读。',
-      ':::',
-      '::::',
-    ].join('\n'),
-  ].join('\n\n')
+  const fewShotExamples = definitions
+    .flatMap(definition =>
+      definition.fewShotExamples.map((example, index) =>
+        [
+          `Few-shot example (${definition.directiveName} #${index + 1}):`,
+          `Intent: ${example.intent}`,
+          'Markdown:',
+          example.markdown,
+        ].join('\n'),
+      ),
+    )
+    .join('\n\n')
 
   return [
     'Directive syntax rules:',
