@@ -25,7 +25,7 @@ Upload a reference image on the left, switch into Markdown editing when needed, 
 
 ![Editor workspace](./public/readme-screenshots/editor-workspace.png)
 
-Editor it if doesn't look right, and the app will validate the Markdown against the supported directives and show errors if there are unsupported components or invalid directive usage.
+Editor it if doesn't look right, and the app will validate the Markdown against the supported directives and show errors if there are unsupported components or invalid directive usage. The directive syntax follows the [generic directives proposal](https://talk.commonmark.org/t/generic-directives-plugins-syntax/444).
 
 ![Editor](./public/readme-screenshots/editor-md.png)
 
