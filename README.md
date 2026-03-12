@@ -18,11 +18,6 @@ It combines three workflows in one app:
 
 ## Product Screens
 
-### Pages library
-
-Manage saved Markdown pages in a compact library table with quick edit and delete actions.
-
-![Pages library](./public/readme-screenshots/pages-library.png)
 
 ### Editor workspace
 
