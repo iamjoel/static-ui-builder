@@ -2,9 +2,9 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { google } from '@ai-sdk/google'
 import { generateText } from 'ai'
 import { z } from 'zod'
+import { buildGenerateMarkdownSystemPrompt } from './generate-markdown-system-prompt'
 import {
   directiveComponentRegistry,
-  getDirectiveGenerationGuide,
   validateDirectiveStructure,
 } from '../src/components/markdown-with-directive/components/markdown-with-directive-schema'
 
@@ -127,22 +127,6 @@ function validateGeneratedMarkdown(markdown: string) {
   }
 }
 
-function getSystemPrompt(previousAttemptError?: string) {
-  return [
-    'You convert an input image into Markdown content.',
-    'Return only a JSON object with keys "title" and "markdown".',
-    'The markdown must faithfully describe the uploaded image.',
-    'You may use plain Markdown freely.',
-    'Do not use any other custom component, raw HTML, JSX, MDX, or fenced code blocks.',
-    'Do not invent unsupported attributes.',
-    'Keep the markdown concise, structured, and ready to render.',
-    getDirectiveGenerationGuide(),
-    previousAttemptError
-      ? `The previous attempt failed validation. You must fix this specific error: ${previousAttemptError}`
-      : '',
-  ].join(' ')
-}
-
 export async function generateMarkdownFromImage(input: unknown) {
   assertApiKey()
 
@@ -156,8 +140,7 @@ export async function generateMarkdownFromImage(input: unknown) {
   let lastResult: GeneratedMarkdownResult | null = null
 
   for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt++) {
-    const systemPrompt = getSystemPrompt(previousAttemptError)
-    console.log(systemPrompt)
+    const systemPrompt = buildGenerateMarkdownSystemPrompt(previousAttemptError)
     const { text } = await generateText({
       model: google(getGeminiModel()),
       temperature: 0.2,
