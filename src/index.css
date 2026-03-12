@@ -1,30 +1,65 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "./styles/theme.css";
 
-:root {
-  font-family: Inter, "Segoe UI", sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color: #09090b;
-  background-color: #fafafa;
+@custom-variant dark (&:is(.dark *));
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  html {
+    @apply overflow-x-hidden;
+  }
+
+  body {
+    @apply min-h-svh w-full bg-background text-foreground;
+    margin: 0;
+    min-width: 320px;
+    font-family: Inter, "Segoe UI", sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: inherit;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  @media screen and (max-width: 767px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
 }
 
-* {
-  box-sizing: border-box;
+@utility container {
+  margin-inline: auto;
+  padding-inline: 2rem;
 }
 
-a {
-  font-weight: 500;
-  color: inherit;
-  text-decoration: inherit;
+@utility no-scrollbar {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  background: #fafafa;
+#root {
+  min-height: 100vh;
 }
