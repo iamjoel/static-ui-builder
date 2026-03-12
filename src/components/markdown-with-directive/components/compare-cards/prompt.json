@@ -1,0 +1,19 @@
+{
+  "description": "Wraps a set of comparison cards for plans, options, or before/after choices.",
+  "uiDescription": "Renders side-by-side comparison panels that emphasize differences between a small number of options.",
+  "generationNotes": [
+    "Use this as the parent around compareCard blocks.",
+    "Keep the number of cards small so each option remains readable.",
+    "Use highlight on the preferred option only."
+  ],
+  "useCases": [
+    "Plan comparison, option selection, before-and-after framing, and package overviews.",
+    "Avoid using it for more than three options or dense technical specs."
+  ],
+  "fewShotExamples": [
+    {
+      "intent": "Compare two subscription plans.",
+      "markdown": "::::compareCards{columns=\"2\"}\n:::compareCard{title=\"Starter\" badge=\"For individuals\" highlight=\"false\"}\n- 3 projects\n- Shared templates\n- Email support\n:::\n:::compareCard{title=\"Team\" badge=\"Most popular\" highlight=\"true\"}\n- Unlimited projects\n- Role-based access\n- Priority support\n:::\n::::"
+    }
+  ]
+}

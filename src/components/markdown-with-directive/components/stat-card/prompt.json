@@ -1,0 +1,19 @@
+{
+  "description": "Renders one static KPI card with a label, value, optional hint, and optional trend.",
+  "uiDescription": "Shows a large numeric or short textual value with a compact trend pill and a supporting hint line.",
+  "generationNotes": [
+    "Usually place this inside statsCards.",
+    "Keep value short and prominent, such as a percent, count, time, or amount.",
+    "Use trend only when there is an obvious directional meaning."
+  ],
+  "useCases": [
+    "Metrics, KPIs, outcomes, business highlights, and summary stats.",
+    "Avoid using it for long explanations or large nested bullet lists."
+  ],
+  "fewShotExamples": [
+    {
+      "intent": "Render one KPI summary card.",
+      "markdown": ":::statCard{label=\"Retention\" value=\"82%\" hint=\"Month-one cohort\" trend=\"up\"}\n:::"
+    }
+  ]
+}

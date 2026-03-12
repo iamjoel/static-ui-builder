@@ -1,0 +1,23 @@
+{
+  "description": "Renders a single highlighted callout block with optional title and icon.",
+  "uiDescription": "Shows a rounded message panel with a tinted background, a subtle border, and an optional icon chip at the left.",
+  "generationNotes": [
+    "Use this for a single highlighted note, warning, tip, or announcement.",
+    "The body should stay short and focused, usually one to three short paragraphs or bullets.",
+    "Use the tone attribute to match the meaning: info, success, warning, or error."
+  ],
+  "useCases": [
+    "Important notes, launch highlights, tips, warnings, success states, and summary messages.",
+    "Avoid using it for long multi-section content or dense comparisons."
+  ],
+  "fewShotExamples": [
+    {
+      "intent": "Highlight a product launch note.",
+      "markdown": ":::callout{tone=\"info\" title=\"Launch update\" icon=\"🚀\"}\nThe new editor is now available for all workspaces and can be used without additional setup.\n:::"
+    },
+    {
+      "intent": "Show a warning before a migration step.",
+      "markdown": ":::callout{tone=\"warning\" title=\"Before you continue\" icon=\"⚠️\"}\nBack up your current content before replacing it with AI-generated output.\n:::"
+    }
+  ]
+}

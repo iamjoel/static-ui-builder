@@ -1,0 +1,19 @@
+{
+  "description": "Renders one feature card with optional icon and title.",
+  "uiDescription": "Shows a rounded card with a small visual icon, a short title, and concise supporting text.",
+  "generationNotes": [
+    "Usually place this inside featureGrid.",
+    "Keep the title short and the body to one sentence or a tiny bullet list.",
+    "Use the icon for quick visual scanning, but avoid complex decorative content."
+  ],
+  "useCases": [
+    "Product features, customer benefits, module descriptions, and capability highlights.",
+    "Avoid using it for paragraphs longer than a few lines."
+  ],
+  "fewShotExamples": [
+    {
+      "intent": "Describe one feature in a product grid.",
+      "markdown": ":::featureItem{title=\"Reusable blocks\" icon=\"🧱\"}\nCompose repeatable sections without wiring components together.\n:::"
+    }
+  ]
+}

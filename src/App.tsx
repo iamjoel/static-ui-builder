@@ -70,6 +70,10 @@ import {
   type SavedPage,
 } from './features/saved-pages/repository'
 import { cn } from './lib/utils'
+import {
+  directiveComponentRegistry,
+  type DirectiveName,
+} from './components/markdown-with-directive/components/markdown-with-directive-schema'
 
 const exampleDirectiveBlock = `## Directive example
 
@@ -86,6 +90,7 @@ Attributes are validated before rendering
 type Route
   = { name: 'editor', pageId: string }
     | { name: 'library' }
+    | { directiveName?: DirectiveName, name: 'components' }
 
 type EditorState = {
   markdown: string
@@ -170,6 +175,16 @@ const timestampFormatter = new Intl.DateTimeFormat('en-US', {
 })
 
 const previewClassName = 'text-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_a]:font-medium [&_a]:text-primary [&_a]:underline [&_blockquote]:mb-4 [&_blockquote]:border-l [&_blockquote]:border-border [&_blockquote]:pl-4 [&_blockquote]:text-muted-foreground [&_code]:rounded-md [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-[\'IBM_Plex_Mono\',\'SFMono-Regular\',Consolas,monospace] [&_code]:text-[0.92em] [&_h1]:mb-5 [&_h1]:text-[2rem] [&_h1]:font-semibold [&_h1]:tracking-[-0.04em] [&_h2]:mb-4 [&_h2]:mt-8 [&_h2]:text-[1.35rem] [&_h2]:font-semibold [&_h2]:tracking-[-0.03em] [&_h3]:mb-3 [&_h3]:mt-6 [&_h3]:text-[1.05rem] [&_h3]:font-semibold [&_h4]:mb-3 [&_h4]:mt-5 [&_h4]:text-sm [&_h4]:font-semibold [&_li+li]:mt-1.5 [&_ol]:mb-4 [&_ol]:pl-5 [&_p]:mb-4 [&_pre]:mb-4 [&_pre]:overflow-auto [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-border [&_pre]:bg-muted [&_pre]:p-4 [&_pre]:text-foreground [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-inherit [&_ul]:mb-4 [&_ul]:pl-5'
+const showcaseDirectiveNames = [
+  'callout',
+  'featuregrid',
+  'featureitem',
+  'statscards',
+  'statcard',
+  'comparecards',
+  'comparecard',
+] as const satisfies DirectiveName[]
+const showcaseDirectiveNameSet = new Set<DirectiveName>(showcaseDirectiveNames)
 
 function parseRoute(hash: string): Route {
   const normalized = hash.replace(/^#/, '')
@@ -178,12 +193,22 @@ function parseRoute(hash: string): Route {
   if (section === 'editor' && id)
     return { name: 'editor', pageId: id }
 
+  if (section === 'components') {
+    if (id && showcaseDirectiveNameSet.has(id as DirectiveName))
+      return { name: 'components', directiveName: id as DirectiveName }
+
+    return { name: 'components' }
+  }
+
   return { name: 'library' }
 }
 
 function formatRoute(route: Route) {
   if (route.name === 'editor')
     return `#/editor/${route.pageId}`
+
+  if (route.name === 'components')
+    return route.directiveName ? `#/components/${route.directiveName}` : '#/components'
 
   return '#/library'
 }
@@ -634,6 +659,141 @@ function LibraryPage({
           )}
         </CardContent>
       </Card>
+    </section>
+  )
+}
+
+type ComponentShowcaseEntry = {
+  description: string
+  directiveName: DirectiveName
+  label: string
+}
+
+const componentShowcaseEntries: ComponentShowcaseEntry[] = showcaseDirectiveNames.map((directiveName) => ({
+  directiveName,
+  label: directiveComponentRegistry[directiveName].directiveName,
+  description: directiveComponentRegistry[directiveName].description,
+}))
+
+type ComponentsShowcasePageProps = {
+  activeDirectiveName?: DirectiveName
+  onSelectDirective: (directiveName: DirectiveName) => void
+}
+
+function ComponentsShowcasePage({
+  activeDirectiveName,
+  onSelectDirective,
+}: ComponentsShowcasePageProps) {
+  const fallbackDirectiveName = componentShowcaseEntries[0]?.directiveName
+  const selectedDirectiveName = activeDirectiveName && showcaseDirectiveNameSet.has(activeDirectiveName)
+    ? activeDirectiveName
+    : fallbackDirectiveName
+
+  if (!selectedDirectiveName)
+    return null
+
+  const selectedDirective = directiveComponentRegistry[selectedDirectiveName]
+  const selectedMarkdown = selectedDirective.fewShotExamples[0]?.markdown ?? ''
+  const selectedAllowedAttributes = selectedDirective.allowedAttributes.join(', ') || 'none'
+
+  return (
+    <section className="space-y-6">
+      <PageHeading
+        eyebrow="Component Gallery"
+        title="Static Markdown Components"
+        description="Browse the display-only directives available for product and content presentation layouts."
+      />
+
+      <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
+        <Card className="xl:sticky xl:top-24">
+          <CardHeader>
+            <CardTitle>Components</CardTitle>
+            <CardDescription>Select a directive to inspect its usage and preview.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {componentShowcaseEntries.map(entry => (
+              <button
+                key={entry.directiveName}
+                type="button"
+                onClick={() => onSelectDirective(entry.directiveName)}
+                className={cn(
+                  'w-full rounded-xl border px-3 py-3 text-left transition-colors',
+                  entry.directiveName === selectedDirectiveName
+                    ? 'border-primary/25 bg-primary/6'
+                    : 'hover:bg-muted/60',
+                )}
+              >
+                <p className="text-sm font-semibold">{entry.label}</p>
+                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{entry.description}</p>
+              </button>
+            ))}
+          </CardContent>
+        </Card>
+
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>{selectedDirective.directiveName}</CardTitle>
+              <CardDescription>{selectedDirective.uiDescription}</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-4">
+                <div className="rounded-xl border bg-muted/20 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Description</p>
+                  <p className="mt-2 text-sm leading-6">{selectedDirective.description}</p>
+                </div>
+                <div className="rounded-xl border bg-muted/20 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Allowed attributes</p>
+                  <p className="mt-2 text-sm leading-6">{selectedAllowedAttributes}</p>
+                </div>
+                <div className="rounded-xl border bg-muted/20 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Best use cases</p>
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
+                    {selectedDirective.useCases.map(useCase => (
+                      <li key={useCase}>{useCase}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="rounded-xl border bg-muted/20 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Generation notes</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
+                  {selectedDirective.generationNotes.map(note => (
+                    <li key={note}>{note}</li>
+                  ))}
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-6 2xl:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Preview</CardTitle>
+                <CardDescription>Rendered from the first showcase example for this directive.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-xl border bg-muted/20 px-5 py-5">
+                  <MarkdownWithDirective markdown={selectedMarkdown} className={previewClassName} />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Markdown example</CardTitle>
+                <CardDescription>Copy this structure when authoring or prompting for this directive.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <pre className="overflow-auto rounded-xl border bg-muted p-4 text-sm leading-6 text-foreground">
+                  <code>{selectedMarkdown}</code>
+                </pre>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
     </section>
   )
 }
@@ -1102,6 +1262,17 @@ function App() {
                   </SidebarMenuButton>
                   <SidebarMenuBadge>{route.name === 'editor' ? 'open' : '-'}</SidebarMenuBadge>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    tooltip="Components"
+                    isActive={route.name === 'components'}
+                    onClick={() => navigate({ name: 'components' })}
+                  >
+                    <Layers3 className="size-4" />
+                    <span>Components</span>
+                  </SidebarMenuButton>
+                  <SidebarMenuBadge>{showcaseDirectiveNames.length}</SidebarMenuBadge>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -1115,12 +1286,18 @@ function App() {
           <Separator orientation="vertical" className="h-4" />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">
-              {route.name === 'library' ? 'Library Dashboard' : 'Editor Dashboard'}
+              {route.name === 'library'
+                ? 'Library Dashboard'
+                : route.name === 'components'
+                  ? 'Component Gallery'
+                  : 'Editor Dashboard'}
             </p>
             <p className="truncate text-sm text-muted-foreground">
               {route.name === 'library'
                 ? 'shadcn-admin table workspace'
-                : currentPage?.title ?? 'Content editor'}
+                : route.name === 'components'
+                  ? 'Static display directives'
+                  : currentPage?.title ?? 'Content editor'}
             </p>
           </div>
           <div className="hidden items-center gap-2 md:flex">
@@ -1145,6 +1322,13 @@ function App() {
                   pages={pages}
                 />
               )
+            : route.name === 'components'
+              ? (
+                  <ComponentsShowcasePage
+                    activeDirectiveName={route.directiveName}
+                    onSelectDirective={directiveName => navigate({ name: 'components', directiveName })}
+                  />
+                )
             : (
                 <EditorPage
                   currentPage={currentPage}

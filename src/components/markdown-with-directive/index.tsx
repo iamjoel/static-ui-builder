@@ -5,13 +5,110 @@ import DOMPurify from 'dompurify'
 import remarkDirective from 'remark-directive'
 import { defaultRehypePlugins, Streamdown } from 'streamdown'
 import { visit } from 'unist-util-visit'
+import Callout from './components/callout'
+import CompareCard from './components/compare-card'
+import CompareCards from './components/compare-cards'
+import FeatureGrid from './components/feature-grid'
+import FeatureItem from './components/feature-item'
+import StatCard from './components/stat-card'
+import StatsCards from './components/stats-cards'
 import { directiveAllowedTags, validateDirectiveProps } from './components/markdown-with-directive-schema'
 import WithIconCardItem from './components/with-icon-card-item'
 import WithIconCardList from './components/with-icon-card-list'
 
-// Adapter to map generic props to WithIconListProps
+function CalloutAdapter(props: Record<string, unknown>) {
+  const { children, className, icon, title, tone } = props
+  return (
+    <Callout
+      className={typeof className === 'string' ? className : undefined}
+      icon={typeof icon === 'string' ? icon : undefined}
+      title={typeof title === 'string' ? title : undefined}
+      tone={tone === 'info' || tone === 'success' || tone === 'warning' || tone === 'error' ? tone : undefined}
+    >
+      {children as ReactNode}
+    </Callout>
+  )
+}
+
+function CompareCardsAdapter(props: Record<string, unknown>) {
+  const { children, className, columns } = props
+  return (
+    <CompareCards
+      className={typeof className === 'string' ? className : undefined}
+      columns={columns === '2' || columns === '3' ? columns : undefined}
+    >
+      {children as ReactNode}
+    </CompareCards>
+  )
+}
+
+function CompareCardAdapter(props: Record<string, unknown>) {
+  const { badge, children, className, highlight, title } = props
+  return (
+    <CompareCard
+      badge={typeof badge === 'string' ? badge : undefined}
+      className={typeof className === 'string' ? className : undefined}
+      highlight={highlight === 'true' || highlight === 'false' ? highlight : undefined}
+      title={typeof title === 'string' ? title : undefined}
+    >
+      {children as ReactNode}
+    </CompareCard>
+  )
+}
+
+function FeatureGridAdapter(props: Record<string, unknown>) {
+  const { children, className, columns } = props
+  return (
+    <FeatureGrid
+      className={typeof className === 'string' ? className : undefined}
+      columns={columns === '2' || columns === '3' || columns === '4' ? columns : undefined}
+    >
+      {children as ReactNode}
+    </FeatureGrid>
+  )
+}
+
+function FeatureItemAdapter(props: Record<string, unknown>) {
+  const { children, className, icon, title } = props
+  return (
+    <FeatureItem
+      className={typeof className === 'string' ? className : undefined}
+      icon={typeof icon === 'string' ? icon : undefined}
+      title={typeof title === 'string' ? title : undefined}
+    >
+      {children as ReactNode}
+    </FeatureItem>
+  )
+}
+
+function StatsCardsAdapter(props: Record<string, unknown>) {
+  const { children, className, columns } = props
+  return (
+    <StatsCards
+      className={typeof className === 'string' ? className : undefined}
+      columns={columns === '2' || columns === '3' || columns === '4' ? columns : undefined}
+    >
+      {children as ReactNode}
+    </StatsCards>
+  )
+}
+
+function StatCardAdapter(props: Record<string, unknown>) {
+  const { children, className, hint, label, trend, value } = props
+  return (
+    <StatCard
+      className={typeof className === 'string' ? className : undefined}
+      hint={typeof hint === 'string' ? hint : undefined}
+      label={typeof label === 'string' ? label : undefined}
+      trend={trend === 'up' || trend === 'down' || trend === 'neutral' ? trend : undefined}
+      value={typeof value === 'string' ? value : undefined}
+    >
+      {children as ReactNode}
+    </StatCard>
+  )
+}
+
 function WithIconCardListAdapter(props: Record<string, unknown>) {
-  // Extract expected props, fallback to undefined if not present
   const { children, className } = props
   return (
     <WithIconCardList
@@ -21,7 +118,6 @@ function WithIconCardListAdapter(props: Record<string, unknown>) {
   )
 }
 
-// Adapter to map generic props to WithIconCardItemProps
 function WithIconCardItemAdapter(props: Record<string, unknown>) {
   const { icon, className, children } = props
   return (
@@ -238,6 +334,13 @@ function directivePlugin() {
 }
 
 const directiveComponents = {
+  callout: CalloutAdapter,
+  comparecard: CompareCardAdapter,
+  comparecards: CompareCardsAdapter,
+  featuregrid: FeatureGridAdapter,
+  featureitem: FeatureItemAdapter,
+  statcard: StatCardAdapter,
+  statscards: StatsCardsAdapter,
   withiconcardlist: WithIconCardListAdapter,
   withiconcarditem: WithIconCardItemAdapter,
 } satisfies Components

@@ -1,0 +1,19 @@
+{
+  "description": "Wraps a responsive set of static KPI or metric cards.",
+  "uiDescription": "Renders compact numeric summary cards in a clean multi-column layout.",
+  "generationNotes": [
+    "Use this as the parent around statCard blocks.",
+    "This pattern works best when each item has a short label and one prominent value.",
+    "Prefer 2 to 4 items for a balanced layout."
+  ],
+  "useCases": [
+    "KPI summaries, growth numbers, report highlights, and static dashboard-style overviews.",
+    "Avoid using it for charts, detailed tables, or interactive analytics."
+  ],
+  "fewShotExamples": [
+    {
+      "intent": "Show a three-card KPI summary.",
+      "markdown": "::::statsCards{columns=\"3\"}\n:::statCard{label=\"Activation rate\" value=\"68%\" hint=\"First-week completion\" trend=\"up\"}\n:::\n:::statCard{label=\"Avg. setup time\" value=\"12 min\" hint=\"From account creation to first publish\" trend=\"down\"}\n:::\n:::statCard{label=\"Teams onboarded\" value=\"1,240\" hint=\"Last 30 days\" trend=\"up\"}\n:::\n::::"
+    }
+  ]
+}

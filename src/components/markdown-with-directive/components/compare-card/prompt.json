@@ -1,0 +1,19 @@
+{
+  "description": "Renders one comparison card with title, badge, and highlighted state.",
+  "uiDescription": "Shows a comparison panel with a heading, optional badge, and a body of concise bullets or short copy.",
+  "generationNotes": [
+    "Usually place this inside compareCards.",
+    "Use highlight=\"true\" only for the preferred or recommended option.",
+    "The body should stay concise, usually bullets or very short paragraphs."
+  ],
+  "useCases": [
+    "Pricing tiers, plan comparison, feature package comparison, and before/after option framing.",
+    "Avoid using it for very dense data tables."
+  ],
+  "fewShotExamples": [
+    {
+      "intent": "Describe the preferred option in a comparison layout.",
+      "markdown": ":::compareCard{title=\"Growth\" badge=\"Recommended\" highlight=\"true\"}\n- Unlimited sections\n- Shared templates\n- Faster publishing workflow\n:::"
+    }
+  ]
+}

@@ -1,4 +1,11 @@
 import * as z from 'zod'
+import calloutPrompt from './callout/prompt.json'
+import compareCardPrompt from './compare-card/prompt.json'
+import compareCardsPrompt from './compare-cards/prompt.json'
+import featureGridPrompt from './feature-grid/prompt.json'
+import featureItemPrompt from './feature-item/prompt.json'
+import statCardPrompt from './stat-card/prompt.json'
+import statsCardsPrompt from './stats-cards/prompt.json'
 import withIconCardItemPrompt from './with-icon-card-item/prompt.json'
 import withIconCardListPrompt from './with-icon-card-list/prompt.json'
 
@@ -9,6 +16,49 @@ export const withIconCardListPropsSchema = z.object(commonSchema).strict()
 
 const HTTP_URL_REGEX = /^https?:\/\//i
 
+export const calloutPropsSchema = z.object({
+  ...commonSchema,
+  icon: z.string().trim().min(1).optional(),
+  title: z.string().trim().min(1).optional(),
+  tone: z.enum(['info', 'success', 'warning', 'error']).optional(),
+}).strict()
+
+export const featureGridPropsSchema = z.object({
+  ...commonSchema,
+  columns: z.enum(['2', '3', '4']).optional(),
+}).strict()
+
+export const featureItemPropsSchema = z.object({
+  ...commonSchema,
+  icon: z.string().trim().min(1).optional(),
+  title: z.string().trim().min(1).optional(),
+}).strict()
+
+export const statsCardsPropsSchema = z.object({
+  ...commonSchema,
+  columns: z.enum(['2', '3', '4']).optional(),
+}).strict()
+
+export const statCardPropsSchema = z.object({
+  ...commonSchema,
+  hint: z.string().trim().min(1).optional(),
+  label: z.string().trim().min(1).optional(),
+  trend: z.enum(['up', 'down', 'neutral']).optional(),
+  value: z.string().trim().min(1).optional(),
+}).strict()
+
+export const compareCardsPropsSchema = z.object({
+  ...commonSchema,
+  columns: z.enum(['2', '3']).optional(),
+}).strict()
+
+export const compareCardPropsSchema = z.object({
+  ...commonSchema,
+  badge: z.string().trim().min(1).optional(),
+  highlight: z.enum(['true', 'false']).optional(),
+  title: z.string().trim().min(1).optional(),
+}).strict()
+
 export const withIconCardItemPropsSchema = z.object({
   ...commonSchema,
   icon: z.string().trim().url().refine(
@@ -18,6 +68,13 @@ export const withIconCardItemPropsSchema = z.object({
 }).strict()
 
 export const directivePropsSchemas = {
+  callout: calloutPropsSchema,
+  comparecard: compareCardPropsSchema,
+  comparecards: compareCardsPropsSchema,
+  featuregrid: featureGridPropsSchema,
+  featureitem: featureItemPropsSchema,
+  statcard: statCardPropsSchema,
+  statscards: statsCardsPropsSchema,
   withiconcardlist: withIconCardListPropsSchema,
   withiconcarditem: withIconCardItemPropsSchema,
 } as const
@@ -37,11 +94,60 @@ type DirectiveRegistryEntry = {
 }
 
 const directivePromptRegistry = {
+  callout: calloutPrompt,
+  comparecard: compareCardPrompt,
+  comparecards: compareCardsPrompt,
+  featuregrid: featureGridPrompt,
+  featureitem: featureItemPrompt,
+  statcard: statCardPrompt,
+  statscards: statsCardsPrompt,
   withiconcardlist: withIconCardListPrompt,
   withiconcarditem: withIconCardItemPrompt,
 } as const satisfies Record<keyof typeof directivePropsSchemas, Omit<DirectiveRegistryEntry, 'allowedAttributes' | 'blockKind' | 'directiveName'>>
 
 export const directiveComponentRegistry: Record<keyof typeof directivePropsSchemas, DirectiveRegistryEntry> = {
+  callout: {
+    directiveName: 'callout',
+    blockKind: 'container',
+    allowedAttributes: ['tone', 'title', 'icon', 'className'],
+    ...directivePromptRegistry.callout,
+  },
+  comparecards: {
+    directiveName: 'compareCards',
+    blockKind: 'container',
+    allowedAttributes: ['columns', 'className'],
+    ...directivePromptRegistry.comparecards,
+  },
+  comparecard: {
+    directiveName: 'compareCard',
+    blockKind: 'container',
+    allowedAttributes: ['title', 'badge', 'highlight', 'className'],
+    ...directivePromptRegistry.comparecard,
+  },
+  featuregrid: {
+    directiveName: 'featureGrid',
+    blockKind: 'container',
+    allowedAttributes: ['columns', 'className'],
+    ...directivePromptRegistry.featuregrid,
+  },
+  featureitem: {
+    directiveName: 'featureItem',
+    blockKind: 'container',
+    allowedAttributes: ['title', 'icon', 'className'],
+    ...directivePromptRegistry.featureitem,
+  },
+  statscards: {
+    directiveName: 'statsCards',
+    blockKind: 'container',
+    allowedAttributes: ['columns', 'className'],
+    ...directivePromptRegistry.statscards,
+  },
+  statcard: {
+    directiveName: 'statCard',
+    blockKind: 'container',
+    allowedAttributes: ['label', 'value', 'hint', 'trend', 'className'],
+    ...directivePromptRegistry.statcard,
+  },
   withiconcardlist: {
     directiveName: 'withIconCardList',
     blockKind: 'container',

@@ -1,0 +1,19 @@
+{
+  "description": "Wraps a grid of feature or benefit cards.",
+  "uiDescription": "Renders evenly spaced product-style cards in a responsive multi-column grid.",
+  "generationNotes": [
+    "Use this as the parent around one or more featureItem blocks.",
+    "Set columns to 2, 3, or 4 based on the number of short items.",
+    "Keep each item concise and scannable."
+  ],
+  "useCases": [
+    "Feature overviews, benefit lists, capability summaries, and module showcases.",
+    "Avoid using it for long prose, raw data tables, or timelines."
+  ],
+  "fewShotExamples": [
+    {
+      "intent": "Present a product feature grid with three items.",
+      "markdown": "::::featureGrid{columns=\"3\"}\n:::featureItem{title=\"Fast setup\" icon=\"⚡\"}\nLaunch a new workspace in minutes.\n:::\n:::featureItem{title=\"Clear permissions\" icon=\"🔐\"}\nAssign access levels without extra tooling.\n:::\n:::featureItem{title=\"Reusable content\" icon=\"🧩\"}\nTurn repeated sections into stable blocks.\n:::\n::::"
+    }
+  ]
+}
