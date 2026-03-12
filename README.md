@@ -25,6 +25,11 @@ Upload a reference image on the left, switch into Markdown editing when needed, 
 
 ![Editor workspace](./public/readme-screenshots/editor-workspace.png)
 
+Editor it if doesn't look right, and the app will validate the Markdown against the supported directives and show errors if there are unsupported components or invalid directive usage.
+
+![Editor](./public/readme-screenshots/editor-md.png)
+
+
 ### Components gallery
 
 Inspect each supported static directive, review its prompt guidance, and compare the rendered preview against the Markdown example.
