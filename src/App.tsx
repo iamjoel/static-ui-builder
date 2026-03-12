@@ -90,6 +90,7 @@ Attributes are validated before rendering
 type Route
   = { name: 'editor', pageId: string }
     | { name: 'library' }
+    | { name: 'conversion-scene', sceneId: string }
     | { directiveName?: DirectiveName, name: 'components' }
 
 type EditorState = {
@@ -185,6 +186,109 @@ const showcaseDirectiveNames = [
   'comparecard',
 ] as const satisfies DirectiveName[]
 const showcaseDirectiveNameSet = new Set<DirectiveName>(showcaseDirectiveNames)
+const conversionTestScenes = [
+  {
+    id: 'launch-overview',
+    title: 'Launch Overview',
+    description: 'A balanced mix of callout and feature grid blocks for a marketing-style conversion test.',
+    markdown: `# Launch your content hub faster
+
+:::callout{tone="info" title="New release" icon="🚀"}
+The visual workspace is now available for every team and can be adopted without a migration project.
+:::
+
+## Why teams switch
+
+::::featureGrid{columns="3"}
+:::featureItem{title="Fast setup" icon="⚡"}
+Create a workspace, invite teammates, and publish a first draft in minutes.
+:::
+:::featureItem{title="Shared rules" icon="🧭"}
+Keep layout and content structure aligned across product, ops, and support pages.
+:::
+:::featureItem{title="Safer reuse" icon="🧩"}
+Turn repeated sections into reliable blocks that stay easy to scan and maintain.
+:::
+::::`,
+  },
+  {
+    id: 'weekly-metrics',
+    title: 'Weekly Metrics',
+    description: 'A metrics-heavy scene for testing static KPI card recognition and supporting context.',
+    markdown: `# Weekly activation snapshot
+
+## This week at a glance
+
+::::statsCards{columns="3"}
+:::statCard{label="Activation rate" value="68%" hint="First-week completion" trend="up"}
+:::
+:::statCard{label="Avg. setup time" value="12 min" hint="From signup to first publish" trend="down"}
+:::
+:::statCard{label="Teams onboarded" value="1,240" hint="Last 30 days" trend="up"}
+:::
+::::
+
+:::callout{tone="success" title="Momentum is building" icon="✅"}
+Faster onboarding and clearer templates are contributing to better first-week activation.
+:::`,
+  },
+  {
+    id: 'plan-comparison',
+    title: 'Plan Comparison',
+    description: 'A plan selection scene centered around comparison cards and one summary callout.',
+    markdown: `# Choose the right workspace plan
+
+:::callout{tone="warning" title="Best fit guidance" icon="💡"}
+Choose Starter for solo work. Choose Team if you need role-based access and shared governance.
+:::
+
+::::compareCards{columns="2"}
+:::compareCard{title="Starter" badge="For individuals" highlight="false"}
+- 3 active projects
+- Shared templates
+- Email support
+:::
+:::compareCard{title="Team" badge="Most popular" highlight="true"}
+- Unlimited projects
+- Role-based access
+- Priority support
+:::
+::::`,
+  },
+  {
+    id: 'editor-rollout',
+    title: 'Editor Rollout',
+    description: 'A mixed layout scene with benefits, stats, and a rollout note for conversion testing.',
+    markdown: `# Editor rollout for distributed teams
+
+:::callout{tone="info" title="Rollout note" icon="🛠️"}
+Start with one shared template set, then expand to regional teams after the first review cycle.
+:::
+
+## Core improvements
+
+::::featureGrid{columns="2"}
+:::featureItem{title="Review-ready drafts" icon="📝"}
+Writers can turn screenshots into structured Markdown before handoff.
+:::
+:::featureItem{title="Consistent delivery" icon="📦"}
+Teams publish updates with the same visual language across launches and changelogs.
+:::
+::::
+
+## Early results
+
+::::statsCards{columns="2"}
+:::statCard{label="Review cycles" value="-32%" hint="Compared with the previous process" trend="down"}
+:::
+:::statCard{label="Template reuse" value="74%" hint="Across newly created pages" trend="up"}
+:::
+::::`,
+  },
+] as const
+const conversionTestSceneIds = new Set<string>(conversionTestScenes.map(scene => scene.id))
+
+type ConversionTestScene = (typeof conversionTestScenes)[number]
 
 function parseRoute(hash: string): Route {
   const normalized = hash.replace(/^#/, '')
@@ -200,6 +304,9 @@ function parseRoute(hash: string): Route {
     return { name: 'components' }
   }
 
+  if (section === 'conversion-scene' && id && conversionTestSceneIds.has(id))
+    return { name: 'conversion-scene', sceneId: id }
+
   return { name: 'library' }
 }
 
@@ -209,6 +316,9 @@ function formatRoute(route: Route) {
 
   if (route.name === 'components')
     return route.directiveName ? `#/components/${route.directiveName}` : '#/components'
+
+  if (route.name === 'conversion-scene')
+    return `#/conversion-scene/${route.sceneId}`
 
   return '#/library'
 }
@@ -827,6 +937,31 @@ function ComponentsShowcasePage({
   )
 }
 
+function ConversionTestScenePage({ scene }: { scene: ConversionTestScene }) {
+  return (
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(40,86,163,0.12),_transparent_40%),linear-gradient(180deg,_#f8fafc_0%,_#eef3f9_100%)] px-8 py-8 text-foreground lg:px-12">
+      <div className="mx-auto max-w-5xl">
+        <div className="rounded-[28px] border bg-background/96 p-8 shadow-[0_32px_80px_rgba(15,23,42,0.08)] lg:p-10">
+          <div className="mb-8 flex items-start justify-between gap-6 border-b pb-6">
+            <div className="max-w-2xl">
+              <p className="text-sm font-medium text-muted-foreground">Conversion Test Scene</p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight">{scene.title}</h1>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{scene.description}</p>
+            </div>
+            <div className="rounded-full border bg-muted/40 px-3 py-1.5 text-sm text-muted-foreground">
+              {scene.id}
+            </div>
+          </div>
+
+          <div className="rounded-[24px] border bg-muted/20 px-8 py-8">
+            <MarkdownWithDirective markdown={scene.markdown} className={previewClassName} />
+          </div>
+        </div>
+      </div>
+    </main>
+  )
+}
+
 function EditorPage({
   currentPage,
   editorState,
@@ -1257,6 +1392,14 @@ function App() {
     isGeneratingFromImage,
     isSaving,
   ])
+
+  if (route.name === 'conversion-scene') {
+    const scene = conversionTestScenes.find(item => item.id === route.sceneId)
+    if (!scene)
+      return null
+
+    return <ConversionTestScenePage scene={scene} />
+  }
 
   return (
     <SidebarProvider defaultOpen>
