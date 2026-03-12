@@ -38,7 +38,6 @@ import {
   DialogTitle,
 } from './components/ui/dialog'
 import { Input } from './components/ui/input'
-import { Separator } from './components/ui/separator'
 import {
   Sidebar,
   SidebarContent,
@@ -53,7 +52,6 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
-  SidebarTrigger,
 } from './components/ui/sidebar'
 import {
   Table,
@@ -74,18 +72,6 @@ import {
   directiveComponentRegistry,
   type DirectiveName,
 } from './components/markdown-with-directive/components/markdown-with-directive-schema'
-
-const exampleDirectiveBlock = `## Directive example
-
-::::withIconCardList
-:::withIconCardItem{icon="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/2705.svg"}
-Render custom card items
-:::
-:::withIconCardItem{icon="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f4a1.svg"}
-Attributes are validated before rendering
-:::
-::::
-`
 
 type Route
   = { name: 'editor', pageId: string }
@@ -335,22 +321,8 @@ function formatTimestamp(value: string) {
   return timestampFormatter.format(new Date(value))
 }
 
-function createInitialMarkdown(draft: CreatePageDraft) {
-  const title = draft.title.trim() || 'Untitled page'
-  const summary = draft.summary.trim()
-
-  return [
-    `# ${title}`,
-    '',
-    summary || 'Start writing here.',
-    '',
-    '## Content',
-    '',
-    '- Edit Markdown on the left',
-    '- Preview the rendered result on the right',
-    '',
-    exampleDirectiveBlock,
-  ].join('\n')
+function createInitialMarkdown(_draft: CreatePageDraft) {
+  return ''
 }
 
 function isMarkdownBlockStart(line: string) {
@@ -434,17 +406,7 @@ function readFileAsDataUrl(file: File) {
 }
 
 function AppBrand() {
-  return (
-    <div className="flex items-center gap-3 rounded-lg border bg-background px-3 py-3 shadow-xs">
-      <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <Layers3 className="size-5" />
-      </div>
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold">Static UI Builder</p>
-        <p className="truncate text-xs text-muted-foreground">shadcn-admin workspace</p>
-      </div>
-    </div>
-  )
+  return <p className="px-2 text-lg font-semibold tracking-tight">Static UI Builder</p>
 }
 
 function PageHeading({
@@ -1526,17 +1488,6 @@ function App() {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    tooltip="Editor"
-                    isActive={route.name === 'editor'}
-                    onClick={() => route.name === 'editor' && currentPage ? navigate(route) : navigate({ name: 'library' })}
-                  >
-                    <FilePenLine className="size-4" />
-                    <span>Editor</span>
-                  </SidebarMenuButton>
-                  <SidebarMenuBadge>{route.name === 'editor' ? 'open' : '-'}</SidebarMenuBadge>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
                     tooltip="Components"
                     isActive={route.name === 'components'}
                     onClick={() => navigate({ name: 'components' })}
@@ -1554,35 +1505,6 @@ function App() {
       </Sidebar>
 
       <SidebarInset className="@container/content">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur sm:px-6">
-          <SidebarTrigger variant="outline" className="size-8" />
-          <Separator orientation="vertical" className="h-4" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">
-              {route.name === 'library'
-                ? 'Library Dashboard'
-                : route.name === 'components'
-                  ? 'Component Gallery'
-                  : 'Editor Dashboard'}
-            </p>
-            <p className="truncate text-sm text-muted-foreground">
-              {route.name === 'library'
-                ? 'shadcn-admin table workspace'
-                : route.name === 'components'
-                  ? 'Static display directives'
-                  : currentPage?.title ?? 'Content editor'}
-            </p>
-          </div>
-          <div className="hidden items-center gap-2 md:flex">
-            <span className="rounded-md border bg-muted px-2 py-1 text-xs text-muted-foreground">
-              Browser storage
-            </span>
-            <span className="rounded-md border bg-primary/5 px-2 py-1 text-xs text-foreground">
-              Gemini enabled
-            </span>
-          </div>
-        </header>
-
         <main className="flex-1 space-y-6 p-4 sm:p-6">
           {route.name === 'library'
             ? (

@@ -16,6 +16,26 @@ It combines three workflows in one app:
 - Component gallery for inspecting supported directives, examples, and prompt guidance
 - Strict directive validation so generated Markdown stays within the supported component set
 
+## Product Screens
+
+### Pages library
+
+Manage saved Markdown pages in a compact library table with quick edit and delete actions.
+
+![Pages library](./public/readme-screenshots/pages-library.png)
+
+### Editor workspace
+
+Upload a reference image on the left, switch into Markdown editing when needed, and keep the rendered preview on the right.
+
+![Editor workspace](./public/readme-screenshots/editor-workspace.png)
+
+### Components gallery
+
+Inspect each supported static directive, review its prompt guidance, and compare the rendered preview against the Markdown example.
+
+![Components gallery](./public/readme-screenshots/components-gallery.png)
+
 ## Tech Stack
 
 - React 19
