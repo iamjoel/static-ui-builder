@@ -10,6 +10,16 @@ It combines three workflows in one app:
 
 The app now uses clean browser paths such as `/`, `/editor/:pageId`, and `/components/:directiveName`.
 
+## Use Cases
+
+This repo is useful when you need a lightweight local workspace for turning visual ideas into structured presentation Markdown.
+
+- Convert UI screenshots, wireframes, or polished mockups into editable Markdown pages with reusable static components.
+- Test and iterate on image-to-Markdown prompts, especially when you need to inspect imperfect model output instead of only validated results.
+- Build internal product pages, feature summaries, onboarding guides, release notes, or marketing-style content blocks without introducing a full CMS.
+- Prototype a constrained Markdown component system before moving the same directives into a larger editor or content platform.
+- Maintain a small local library of presentation pages in browser storage while reviewing how each directive should be rendered and prompted.
+
 ## Features
 
 - Local page library with create, edit, delete, and autosave
