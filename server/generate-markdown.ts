@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { google } from '@ai-sdk/google'
-import { generateObject } from 'ai'
+import { generateText } from 'ai'
 import { z } from 'zod'
 import {
   directiveComponentRegistry,
@@ -9,7 +9,7 @@ import {
 } from '../src/components/markdown-with-directive/components/markdown-with-directive-schema'
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
-const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash'
+const DEFAULT_GEMINI_MODEL = 'gemini-3-flash'
 const DIRECTIVE_NAME_REGEX = /:{2,}([A-Za-z][\w-]*)/g
 const MAX_GENERATION_ATTEMPTS = 2
 
@@ -21,10 +21,17 @@ const requestSchema = z.object({
   mimeType: z.string().regex(/^image\/[a-zA-Z0-9.+-]+$/, 'mimeType must be an image media type'),
 })
 
-const generatedMarkdownSchema = z.object({
-  title: z.string().min(1).max(80),
-  markdown: z.string().min(1).max(12000),
+const generatedMarkdownJsonSchema = z.object({
+  title: z.string(),
+  markdown: z.string(),
 })
+
+type GeneratedMarkdownResult = {
+  error?: string
+  markdown: string
+  rawText: string
+  title: string
+}
 
 function getGeminiModel() {
   return process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL
@@ -48,9 +55,43 @@ function convertDataUrlToUint8Array(dataUrl: string) {
 function sanitizeGeneratedMarkdown(markdown: string) {
   return markdown
     .trim()
-    .replace(/^```(?:markdown)?\s*/i, '')
+    .replace(/^```(?:json|markdown)?\s*/i, '')
     .replace(/\s*```$/, '')
     .trim()
+}
+
+function normalizeGeneratedTitle(title: string) {
+  const normalized = title.trim().replace(/\s+/g, ' ')
+  return normalized.slice(0, 80) || 'Untitled generation'
+}
+
+function deriveResultFromRawText(rawText: string) {
+  const markdown = sanitizeGeneratedMarkdown(rawText) || '生成结果为空。'
+  const titleMatch = markdown.match(/^#\s+(.+)$/m)
+  const firstLine = markdown
+    .split('\n')
+    .map(line => line.trim())
+    .find(Boolean)
+
+  return {
+    title: normalizeGeneratedTitle(titleMatch?.[1] ?? firstLine ?? 'Untitled generation'),
+    markdown,
+  }
+}
+
+function parseGeneratedResult(rawText: string) {
+  const sanitized = sanitizeGeneratedMarkdown(rawText)
+
+  try {
+    const parsed = generatedMarkdownJsonSchema.parse(JSON.parse(sanitized))
+    return {
+      title: normalizeGeneratedTitle(parsed.title),
+      markdown: sanitizeGeneratedMarkdown(parsed.markdown),
+    }
+  }
+  catch {
+    return deriveResultFromRawText(rawText)
+  }
 }
 
 function assertAllowedDirectives(markdown: string) {
@@ -69,11 +110,28 @@ function assertAllowedDirectives(markdown: string) {
     throw new Error(`Generated markdown contains unsupported directives: ${[...new Set(disallowed)].join(', ')}`)
 }
 
+function validateGeneratedMarkdown(markdown: string) {
+  if (!markdown.trim())
+    return 'Generated markdown is empty.'
+
+  try {
+    assertAllowedDirectives(markdown)
+    const structureValidation = validateDirectiveStructure(markdown)
+    if (!structureValidation.valid)
+      return structureValidation.message
+
+    return null
+  }
+  catch (error) {
+    return error instanceof Error ? error.message : 'Generated markdown failed validation.'
+  }
+}
+
 function getSystemPrompt(previousAttemptError?: string) {
   return [
     'You convert an input image into Markdown content.',
-    'Return only structured data that matches the requested schema.',
-    'The markdown must faithfully describe the uploaded image and can be written in Chinese.',
+    'Return only a JSON object with keys "title" and "markdown".',
+    'The markdown must faithfully describe the uploaded image.',
     'You may use plain Markdown freely.',
     'Do not use any other custom component, raw HTML, JSX, MDX, or fenced code blocks.',
     'Do not invent unsupported attributes.',
@@ -95,13 +153,15 @@ export async function generateMarkdownFromImage(input: unknown) {
   const imageData = convertDataUrlToUint8Array(payload.imageDataUrl)
 
   let previousAttemptError: string | undefined
+  let lastResult: GeneratedMarkdownResult | null = null
 
   for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt++) {
-    const { object } = await generateObject({
+    const systemPrompt = getSystemPrompt(previousAttemptError)
+    console.log(systemPrompt)
+    const { text } = await generateText({
       model: google(getGeminiModel()),
-      schema: generatedMarkdownSchema,
       temperature: 0.2,
-      system: getSystemPrompt(previousAttemptError),
+      system: systemPrompt,
       messages: [
         {
           role: 'user',
@@ -126,25 +186,25 @@ export async function generateMarkdownFromImage(input: unknown) {
       ],
     })
 
-    const result = {
-      title: object.title.trim(),
-      markdown: sanitizeGeneratedMarkdown(object.markdown),
+    const rawText = text.trim()
+    const parsedResult = parseGeneratedResult(rawText)
+    const result: GeneratedMarkdownResult = {
+      ...parsedResult,
+      rawText,
     }
+    lastResult = result
 
-    try {
-      assertAllowedDirectives(result.markdown)
-      const structureValidation = validateDirectiveStructure(result.markdown)
-      if (!structureValidation.valid)
-        throw new Error(structureValidation.message)
-
+    const validationError = validateGeneratedMarkdown(result.markdown)
+    if (!validationError)
       return result
-    }
-    catch (error) {
-      previousAttemptError = error instanceof Error ? error.message : 'Generated markdown failed validation.'
-      if (attempt === MAX_GENERATION_ATTEMPTS - 1)
-        throw error
-    }
+
+    previousAttemptError = validationError
+    if (attempt === MAX_GENERATION_ATTEMPTS - 1)
+      return { ...result, error: validationError }
   }
+
+  if (lastResult)
+    return lastResult
 
   throw new Error('Failed to generate valid markdown.')
 }

@@ -93,7 +93,9 @@ type EditorState = {
 }
 
 type GeneratedMarkdownPayload = {
+  error?: string
   markdown: string
+  rawText?: string
   title: string
 }
 
@@ -764,7 +766,19 @@ function EditorPage({
             )}
 
             <div className="min-h-[520px] rounded-lg border bg-muted/20 px-5 py-5">
-              <MarkdownWithDirective markdown={deferredMarkdown} className={previewClassName} />
+              {isGeneratingFromImage
+                ? (
+                    <div className="flex min-h-[520px] flex-col items-center justify-center gap-3 text-center">
+                      <div className="size-10 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-foreground" />
+                      <div className="space-y-1">
+                        <p className="font-medium">正在生成预览内容</p>
+                        <p className="text-sm text-muted-foreground">
+                          已上传图片，正在等待模型返回结果。
+                        </p>
+                      </div>
+                    </div>
+                  )
+                : <MarkdownWithDirective markdown={deferredMarkdown} className={previewClassName} />}
             </div>
           </CardContent>
         </Card>
@@ -947,11 +961,6 @@ function App() {
       return
     }
 
-    if ((editorState.markdown.trim() || editorState.title.trim())
-      && !window.confirm('将用 AI 生成的 Markdown 覆盖当前编辑内容，是否继续？')) {
-      return
-    }
-
     setIsGeneratingFromImage(true)
     setFeedback(null)
 
@@ -972,13 +981,26 @@ function App() {
       })
 
       const result = await response.json() as GeneratedMarkdownPayload | { error?: string }
-      if (!response.ok || !('markdown' in result) || !('title' in result))
+      const hasGeneratedContent = 'markdown' in result && 'title' in result
+
+      if (hasGeneratedContent) {
+        setEditorState({
+          title: result.title,
+          markdown: result.markdown,
+        })
+      }
+
+      if (!response.ok && !hasGeneratedContent)
         throw new Error('error' in result && result.error ? result.error : 'AI 生成失败。')
 
-      setEditorState({
-        title: result.title,
-        markdown: result.markdown,
-      })
+      if (!hasGeneratedContent)
+        throw new Error('error' in result && result.error ? result.error : 'AI 生成失败。')
+
+      if (result.error) {
+        setFeedback(`生成已返回，但存在问题：${result.error}`)
+        return
+      }
+
       setFeedback(`已根据图片 ${file.name} 生成 Markdown，请检查后保存。`)
     }
     catch (error) {
