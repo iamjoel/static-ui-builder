@@ -66,7 +66,7 @@ function normalizeGeneratedTitle(title: string) {
 }
 
 function deriveResultFromRawText(rawText: string) {
-  const markdown = sanitizeGeneratedMarkdown(rawText) || '生成结果为空。'
+  const markdown = sanitizeGeneratedMarkdown(rawText) || 'The generation result was empty.'
   const titleMatch = markdown.match(/^#\s+(.+)$/m)
   const firstLine = markdown
     .split('\n')

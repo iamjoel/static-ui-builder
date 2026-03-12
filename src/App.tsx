@@ -71,14 +71,14 @@ import {
 } from './features/saved-pages/repository'
 import { cn } from './lib/utils'
 
-const exampleDirectiveBlock = `## Directive 示例
+const exampleDirectiveBlock = `## Directive example
 
 ::::withIconCardList
 :::withIconCardItem{icon="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/2705.svg"}
-渲染自定义卡片项
+Render custom card items
 :::
 :::withIconCardItem{icon="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f4a1.svg"}
-属性会先经过校验，再渲染
+Attributes are validated before rendering
 :::
 ::::
 `
@@ -125,6 +125,12 @@ type PageMetaDraft = {
   title: string
 }
 
+type ToastState = {
+  id: number
+  message: string
+  tone: 'error' | 'info' | 'success'
+}
+
 type LibraryPageProps = {
   isCreating: boolean
   isLoading: boolean
@@ -158,7 +164,7 @@ const blankEditorState: EditorState = {
   markdown: '',
 }
 
-const timestampFormatter = new Intl.DateTimeFormat('zh-CN', {
+const timestampFormatter = new Intl.DateTimeFormat('en-US', {
   dateStyle: 'medium',
   timeStyle: 'short',
 })
@@ -201,12 +207,12 @@ function createInitialMarkdown(draft: CreatePageDraft) {
   return [
     `# ${title}`,
     '',
-    summary || '在这里开始编辑内容。',
+    summary || 'Start writing here.',
     '',
-    '## 内容',
+    '## Content',
     '',
-    '- 在左侧修改 Markdown',
-    '- 在右侧即时预览渲染结果',
+    '- Edit Markdown on the left',
+    '- Preview the rendered result on the right',
     '',
     exampleDirectiveBlock,
   ].join('\n')
@@ -331,24 +337,30 @@ function PageHeading({
   )
 }
 
-function FeedbackBanner({
-  message,
+function ToastNotice({
   onClose,
+  toast,
 }: {
-  message: string
   onClose: () => void
+  toast: ToastState
 }) {
+  const toneClassName = toast.tone === 'error'
+    ? 'border-destructive/20 bg-destructive/5'
+    : toast.tone === 'success'
+      ? 'border-primary/20 bg-primary/5'
+      : 'border-border bg-background/95'
+
   return (
-    <Card className="gap-4 border-primary/20 bg-primary/5 py-4">
-      <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <Card className={cn('fixed right-4 top-4 z-50 w-[min(420px,calc(100vw-2rem))] gap-4 py-4 shadow-lg', toneClassName)}>
+      <CardContent className="flex items-start gap-3 sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <Sparkles className="size-4" />
           </div>
-          <p className="text-sm leading-6 text-foreground">{message}</p>
+          <p className="pr-3 text-sm leading-6 text-foreground">{toast.message}</p>
         </div>
         <Button variant="ghost" onClick={onClose}>
-          关闭
+          Dismiss
         </Button>
       </CardContent>
     </Card>
@@ -374,42 +386,42 @@ function EditPageInfoDialog({
     <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>编辑页面信息</DialogTitle>
+          <DialogTitle>Edit Page Details</DialogTitle>
           <DialogDescription>
-            修改页面标题和顶部描述。确认后会同步更新当前 Markdown 草稿，仍需点击保存修改才会写入存储。
+            Update the page title and top description. This changes the current Markdown draft and will be saved automatically.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
-            <label className="text-sm font-medium" htmlFor="edit-page-title">页面标题</label>
+            <label className="text-sm font-medium" htmlFor="edit-page-title">Page title</label>
             <Input
               id="edit-page-title"
               value={draft.title}
               onChange={event => onChange({ ...draft, title: event.target.value })}
-              placeholder="例如：AI 产品周报"
+              placeholder="For example: AI product weekly"
             />
           </div>
 
           <div className="grid gap-2">
-            <label className="text-sm font-medium" htmlFor="edit-page-description">页面描述</label>
+            <label className="text-sm font-medium" htmlFor="edit-page-description">Page description</label>
             <Textarea
               id="edit-page-description"
               rows={5}
               value={draft.description}
               onChange={event => onChange({ ...draft, description: event.target.value })}
-              placeholder="会写入 Markdown 标题下方的首段描述。"
+              placeholder="This will be written below the Markdown title."
             />
           </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            取消
+            Cancel
           </Button>
           <Button onClick={onSubmit} disabled={!canSubmit}>
             <FilePenLine className="size-4" />
-            应用修改
+            Apply changes
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -437,42 +449,42 @@ function CreatePageDialog({
     >
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>新建页面</DialogTitle>
+          <DialogTitle>Create Page</DialogTitle>
           <DialogDescription>
-            先填写页面标题和摘要。创建成功后会先保存到浏览器，再跳转到独立编辑页继续编辑。
+            Add a page title and summary first. The page will be saved locally and opened in the editor right away.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
-            <label className="text-sm font-medium" htmlFor="page-title">页面标题</label>
+            <label className="text-sm font-medium" htmlFor="page-title">Page title</label>
             <Input
               id="page-title"
               value={draft.title}
               onChange={event => onChange({ ...draft, title: event.target.value })}
-              placeholder="例如：AI 产品周报"
+              placeholder="For example: AI product weekly"
             />
           </div>
 
           <div className="grid gap-2">
-            <label className="text-sm font-medium" htmlFor="page-summary">页面摘要</label>
+            <label className="text-sm font-medium" htmlFor="page-summary">Page summary</label>
             <Textarea
               id="page-summary"
               rows={5}
               value={draft.summary}
               onChange={event => onChange({ ...draft, summary: event.target.value })}
-              placeholder="可选。会作为新页面开头内容。"
+              placeholder="Optional. This becomes the opening paragraph of the new page."
             />
           </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-            取消
+            Cancel
           </Button>
           <Button onClick={onSubmit} disabled={!canSubmit}>
             <Plus className="size-4" />
-            {isSubmitting ? '创建中...' : '创建并进入编辑页'}
+            {isSubmitting ? 'Creating...' : 'Create and open editor'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -490,20 +502,20 @@ function DeletePageDialog({
     <AlertDialog open={Boolean(page)} onOpenChange={(open) => !open && onClose()}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>删除页面</AlertDialogTitle>
+          <AlertDialogTitle>Delete Page</AlertDialogTitle>
           <AlertDialogDescription>
             {page
-              ? `确认删除「${page.title}」吗？这会同时删除浏览器里保存的内容。`
-              : '确认删除当前页面吗？'}
+              ? `Delete "${page.title}"? This will remove the saved local content as well.`
+              : 'Delete this page?'}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isDeleting}>取消</AlertDialogCancel>
+          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
           <AlertDialogAction
             className={cn(isDeleting && 'pointer-events-none opacity-50')}
             onClick={onConfirm}
           >
-            {isDeleting ? '删除中...' : '确认删除'}
+            {isDeleting ? 'Deleting...' : 'Delete'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -523,56 +535,56 @@ function LibraryPage({
     <section className="space-y-6">
       <PageHeading
         eyebrow="Content Library"
-        title="页面库"
-        description="用 shadcn-admin 的卡片和表格体系管理本地 Markdown 页面。创建入口、编辑入口和删除操作都从这里进入。"
+        title="Pages"
+        description="Manage local Markdown pages with the shadcn-admin card and table system."
         actions={(
           <Button onClick={onCreateClick} disabled={isCreating}>
             <Plus className="size-4" />
-            {isCreating ? '创建中...' : '新建页面'}
+            {isCreating ? 'Creating...' : 'New page'}
           </Button>
         )}
       />
 
       <Card>
         <CardHeader>
-          <CardTitle>已保存页面列表</CardTitle>
-          <CardDescription>每一行都对应一个本地页面，可直接进入编辑器或删除。</CardDescription>
+          <CardTitle>Saved pages</CardTitle>
+          <CardDescription>Each row maps to one local page and can be opened or deleted directly.</CardDescription>
           <CardAction>
             <div className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
-              共 {pages.length} 项
+              {pages.length} items
             </div>
           </CardAction>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="rounded-lg border border-dashed px-4 py-12 text-sm text-muted-foreground">
-              正在读取浏览器中的已保存页面...
+              Loading saved pages from browser storage...
             </div>
           ) : pages.length === 0 ? (
             <div className="rounded-lg border border-dashed px-4 py-12">
               <div className="mx-auto max-w-xl text-center">
-                <p className="text-lg font-semibold">还没有已保存页面</p>
+                <p className="text-lg font-semibold">No saved pages yet</p>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  先创建一个页面，再进入编辑页继续写 Markdown、调试 directive，或者上传图片生成内容。
+                  Create a page first, then continue editing Markdown, testing directives, or generating content from an image.
                 </p>
                 <Button className="mt-4" onClick={onCreateClick}>
                   <Plus className="size-4" />
-                  新建第一个页面
+                  Create your first page
                 </Button>
               </div>
             </div>
           ) : (
             <div className="overflow-hidden rounded-lg border">
               <Table>
-                <TableCaption className="sr-only">已保存页面列表</TableCaption>
+                <TableCaption className="sr-only">Saved pages</TableCaption>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="px-4">标题</TableHead>
-                    <TableHead className="px-4">内容预览</TableHead>
-                    <TableHead className="px-4">最近更新</TableHead>
-                    <TableHead className="px-4">创建时间</TableHead>
-                    <TableHead className="px-4">存储位置</TableHead>
-                    <TableHead className="px-4 text-right">操作</TableHead>
+                    <TableHead className="px-4">Title</TableHead>
+                    <TableHead className="px-4">Preview</TableHead>
+                    <TableHead className="px-4">Last updated</TableHead>
+                    <TableHead className="px-4">Created</TableHead>
+                    <TableHead className="px-4">Storage</TableHead>
+                    <TableHead className="px-4 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -588,7 +600,7 @@ function LibraryPage({
                       </TableCell>
                       <TableCell className="max-w-[420px] whitespace-normal px-4 py-4">
                         <p className="line-clamp-2 whitespace-normal text-sm leading-6 text-muted-foreground">
-                          {describePreview(page.markdown) || '无预览内容'}
+                          {describePreview(page.markdown) || 'No preview content'}
                         </p>
                       </TableCell>
                       <TableCell className="px-4 py-4 text-muted-foreground">
@@ -606,11 +618,11 @@ function LibraryPage({
                         <div className="flex justify-end gap-2">
                           <Button variant="outline" onClick={() => onEditPage(page.id)}>
                             <FilePenLine className="size-4" />
-                            编辑
+                            Edit
                           </Button>
                           <Button variant="ghost" onClick={() => onDeletePage(page)}>
                             <Trash2 className="size-4" />
-                            删除
+                            Delete
                           </Button>
                         </div>
                       </TableCell>
@@ -655,18 +667,18 @@ function EditorPage({
       <section className="space-y-6">
         <PageHeading
           eyebrow="Editor"
-          title="页面不存在"
-          description="它可能已经被删除，或者当前浏览器存储已经清空。回到页面库后可以重新创建，或者打开其他已保存页面。"
+          title="Page not found"
+          description="The page may have been deleted, or this browser storage was cleared. Go back to the library to create a new one or open another saved page."
           actions={(
             <Button variant="outline" onClick={onBack}>
-              返回页面库
+              Back to library
             </Button>
           )}
         />
         <Card>
           <CardContent className="py-10">
             <p className="text-center text-sm leading-6 text-muted-foreground">
-              当前页面已不存在。请返回列表页重新选择。
+              This page no longer exists. Return to the library and choose another page.
             </p>
           </CardContent>
         </Card>
@@ -690,9 +702,10 @@ function EditorPage({
                 setMetaDraft(extractPageMeta(editorState.markdown, editorState.title || currentPage.title))
                 setIsEditInfoDialogOpen(true)
               }}
+              disabled={isGeneratingFromImage}
             >
               <FilePenLine className="size-4" />
-              编辑信息
+              Edit details
             </Button>
             <Button
               variant="outline"
@@ -712,15 +725,15 @@ function EditorPage({
                   }}
                 />
                 <ImageUp className="size-4" />
-                {isGeneratingFromImage ? '识别中...' : '上传图片'}
+                {isGeneratingFromImage ? 'Generating...' : 'Upload image'}
               </label>
             </Button>
             <Button variant="outline" onClick={onBack}>
-              返回页面库
+              Back to library
             </Button>
             <Button onClick={onSave} disabled={isSaving || isGeneratingFromImage}>
               <Save className="size-4" />
-              {isSaving ? '保存中...' : '保存修改'}
+              {isSaving ? 'Saving...' : 'Save now'}
             </Button>
           </>
         )}
@@ -729,30 +742,31 @@ function EditorPage({
       <div className="grid gap-6 xl:grid-cols-2">
         <Card className="min-h-[620px]">
           <CardHeader>
-            <CardTitle>编辑内容</CardTitle>
-            <CardDescription>左侧维护原始 Markdown 和 directive 文本。</CardDescription>
+            <CardTitle>Editor</CardTitle>
+            <CardDescription>Maintain the raw Markdown and directive content here.</CardDescription>
           </CardHeader>
           <CardContent className="flex-1">
             <Textarea
-              className="min-h-[520px] resize-none font-['IBM_Plex_Mono','SFMono-Regular',Consolas,monospace] text-[0.95rem] leading-7"
+              className="min-h-[520px] resize-none font-['IBM_Plex_Mono','SFMono-Regular',Consolas,monospace] text-[0.95rem] leading-7 disabled:cursor-not-allowed disabled:opacity-60"
               value={editorState.markdown}
               onChange={event => onChange({ ...editorState, markdown: event.target.value })}
               spellCheck={false}
               aria-label="Markdown input"
+              disabled={isGeneratingFromImage}
             />
           </CardContent>
         </Card>
 
         <Card className="min-h-[620px]">
           <CardHeader>
-            <CardTitle>渲染预览</CardTitle>
-            <CardDescription>右侧实时展示 Markdown 渲染结果和 directive 组件输出。</CardDescription>
+            <CardTitle>Preview</CardTitle>
+            <CardDescription>See the rendered Markdown and directive output in real time.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {imagePreviewUrl && (
               <div className="overflow-hidden rounded-lg border bg-muted/20">
                 <div className="flex items-center justify-between border-b px-4 py-3 text-sm">
-                  <span className="font-medium">参考图片</span>
+                  <span className="font-medium">Reference image</span>
                   <span className="max-w-[60%] truncate text-muted-foreground">{imageSourceName}</span>
                 </div>
                 <div className="bg-background p-4">
@@ -771,9 +785,9 @@ function EditorPage({
                     <div className="flex min-h-[520px] flex-col items-center justify-center gap-3 text-center">
                       <div className="size-10 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-foreground" />
                       <div className="space-y-1">
-                        <p className="font-medium">正在生成预览内容</p>
+                        <p className="font-medium">Generating preview</p>
                         <p className="text-sm text-muted-foreground">
-                          已上传图片，正在等待模型返回结果。
+                          Your image has been uploaded. Waiting for the model response.
                         </p>
                       </div>
                     </div>
@@ -808,7 +822,7 @@ function App() {
   const [editorState, setEditorState] = useState<EditorState>(blankEditorState)
   const [createDraft, setCreateDraft] = useState<CreatePageDraft>(blankCreateDraft)
   const [deleteTarget, setDeleteTarget] = useState<SavedPage | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
+  const [toast, setToast] = useState<ToastState | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -822,6 +836,10 @@ function App() {
     ? pages.find(page => page.id === route.pageId) ?? null
     : null
   const isMissingPage = route.name === 'editor' && !currentPage && !isLoading
+  const hasUnsavedEditorChanges = route.name === 'editor'
+    && currentPage
+    && ((editorState.title.trim() || currentPage.title) !== currentPage.title
+      || editorState.markdown !== currentPage.markdown)
 
   function navigate(nextRoute: Route) {
     const nextHash = formatRoute(nextRoute)
@@ -833,6 +851,14 @@ function App() {
 
   async function refreshPages() {
     setPages(await repository.list())
+  }
+
+  function showToast(message: string, tone: ToastState['tone'] = 'info') {
+    setToast({
+      id: Date.now(),
+      message,
+      tone,
+    })
   }
 
   useEffect(() => {
@@ -879,23 +905,39 @@ function App() {
     setImageSourceName(null)
   }, [currentPage?.id])
 
-  async function handleSave() {
+  useEffect(() => {
+    if (!toast)
+      return
+
+    const timeoutId = window.setTimeout(() => {
+      setToast(current => current?.id === toast.id ? null : current)
+    }, 3200)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [toast])
+
+  async function handleSave(options?: { silent?: boolean }) {
     if (!currentPage)
       return
 
+    const nextTitle = editorState.title.trim() || currentPage.title
+    const nextMarkdown = editorState.markdown
+    if (nextTitle === currentPage.title && nextMarkdown === currentPage.markdown)
+      return
+
     setIsSaving(true)
-    setFeedback(null)
 
     try {
       await repository.update(currentPage.id, {
-        title: editorState.title.trim() || currentPage.title,
-        markdown: editorState.markdown,
+        title: nextTitle,
+        markdown: nextMarkdown,
       })
       await refreshPages()
-      setFeedback('页面已更新到浏览器存储。')
+      if (!options?.silent)
+        showToast('Successed', 'success')
     }
     catch (error) {
-      setFeedback(error instanceof Error ? error.message : '保存失败。')
+      showToast(error instanceof Error ? error.message : 'Failed to save changes.', 'error')
     }
     finally {
       setIsSaving(false)
@@ -911,13 +953,13 @@ function App() {
     try {
       await repository.delete(deleteTarget.id)
       await refreshPages()
-      setFeedback('页面已删除。')
+      showToast('Successed', 'success')
 
       if (route.name === 'editor' && route.pageId === deleteTarget.id)
         navigate({ name: 'library' })
     }
     catch (error) {
-      setFeedback(error instanceof Error ? error.message : '删除失败。')
+      showToast(error instanceof Error ? error.message : 'Failed to delete page.', 'error')
     }
     finally {
       setIsDeleting(false)
@@ -930,7 +972,6 @@ function App() {
       return
 
     setIsCreating(true)
-    setFeedback(null)
 
     try {
       const createdPage = await repository.create({
@@ -941,11 +982,11 @@ function App() {
       await refreshPages()
       setCreateDraft(blankCreateDraft)
       setIsCreateDialogOpen(false)
-      setFeedback('页面已创建，已跳转到编辑页。')
+      showToast('Successed', 'success')
       navigate({ name: 'editor', pageId: createdPage.id })
     }
     catch (error) {
-      setFeedback(error instanceof Error ? error.message : '创建失败。')
+      showToast(error instanceof Error ? error.message : 'Failed to create page.', 'error')
     }
     finally {
       setIsCreating(false)
@@ -957,12 +998,11 @@ function App() {
       return
 
     if (file.size > 5 * 1024 * 1024) {
-      setFeedback('图片过大，请上传 5MB 以内的图片。')
+      showToast('Image is too large. Please upload an image smaller than 5MB.', 'error')
       return
     }
 
     setIsGeneratingFromImage(true)
-    setFeedback(null)
 
     try {
       const imageDataUrl = await readFileAsDataUrl(file)
@@ -991,25 +1031,43 @@ function App() {
       }
 
       if (!response.ok && !hasGeneratedContent)
-        throw new Error('error' in result && result.error ? result.error : 'AI 生成失败。')
+        throw new Error('error' in result && result.error ? result.error : 'AI generation failed.')
 
       if (!hasGeneratedContent)
-        throw new Error('error' in result && result.error ? result.error : 'AI 生成失败。')
+        throw new Error('error' in result && result.error ? result.error : 'AI generation failed.')
 
       if (result.error) {
-        setFeedback(`生成已返回，但存在问题：${result.error}`)
+        showToast(`Generation returned content with issues: ${result.error}`, 'info')
         return
       }
 
-      setFeedback(`已根据图片 ${file.name} 生成 Markdown，请检查后保存。`)
+      showToast('Successed', 'success')
     }
     catch (error) {
-      setFeedback(error instanceof Error ? error.message : 'AI 生成失败。')
+      showToast(error instanceof Error ? error.message : 'AI generation failed.', 'error')
     }
     finally {
       setIsGeneratingFromImage(false)
     }
   }
+
+  useEffect(() => {
+    if (!hasUnsavedEditorChanges || isGeneratingFromImage || isSaving)
+      return
+
+    const timeoutId = window.setTimeout(() => {
+      void handleSave({ silent: true })
+    }, 1200)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [
+    currentPage,
+    editorState.markdown,
+    editorState.title,
+    hasUnsavedEditorChanges,
+    isGeneratingFromImage,
+    isSaving,
+  ])
 
   return (
     <SidebarProvider defaultOpen>
@@ -1024,23 +1082,23 @@ function App() {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    tooltip="页面库"
+                    tooltip="Pages"
                     isActive={route.name === 'library'}
                     onClick={() => navigate({ name: 'library' })}
                   >
                     <Library className="size-4" />
-                    <span>页面库</span>
+                    <span>Pages</span>
                   </SidebarMenuButton>
                   <SidebarMenuBadge>{pages.length}</SidebarMenuBadge>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    tooltip="编辑器"
+                    tooltip="Editor"
                     isActive={route.name === 'editor'}
                     onClick={() => route.name === 'editor' && currentPage ? navigate(route) : navigate({ name: 'library' })}
                   >
                     <FilePenLine className="size-4" />
-                    <span>编辑器</span>
+                    <span>Editor</span>
                   </SidebarMenuButton>
                   <SidebarMenuBadge>{route.name === 'editor' ? 'open' : '-'}</SidebarMenuBadge>
                 </SidebarMenuItem>
@@ -1062,7 +1120,7 @@ function App() {
             <p className="truncate text-sm text-muted-foreground">
               {route.name === 'library'
                 ? 'shadcn-admin table workspace'
-                : currentPage?.title ?? '内容编辑'}
+                : currentPage?.title ?? 'Content editor'}
             </p>
           </div>
           <div className="hidden items-center gap-2 md:flex">
@@ -1076,8 +1134,6 @@ function App() {
         </header>
 
         <main className="flex-1 space-y-6 p-4 sm:p-6">
-          {feedback && <FeedbackBanner message={feedback} onClose={() => setFeedback(null)} />}
-
           {route.name === 'library'
             ? (
                 <LibraryPage
@@ -1106,6 +1162,8 @@ function App() {
               )}
         </main>
       </SidebarInset>
+
+      {toast && <ToastNotice toast={toast} onClose={() => setToast(null)} />}
 
       <CreatePageDialog
         draft={createDraft}
