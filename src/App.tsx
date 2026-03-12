@@ -1,9 +1,6 @@
 import { startTransition, useDeferredValue, useEffect, useState, type ReactNode } from 'react'
 import {
-  BookCopy,
-  Bot,
   FilePenLine,
-  FolderOpen,
   ImageUp,
   Layers3,
   Library,
@@ -11,7 +8,6 @@ import {
   Save,
   Sparkles,
   Trash2,
-  type LucideIcon,
 } from 'lucide-react'
 import { MarkdownWithDirective } from './components/markdown-with-directive'
 import {
@@ -46,7 +42,6 @@ import { Separator } from './components/ui/separator'
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -65,7 +60,6 @@ import {
   TableBody,
   TableCaption,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -124,6 +118,11 @@ type DeletePageDialogProps = {
   onConfirm: () => void
 }
 
+type PageMetaDraft = {
+  description: string
+  title: string
+}
+
 type LibraryPageProps = {
   isCreating: boolean
   isLoading: boolean
@@ -136,22 +135,15 @@ type LibraryPageProps = {
 type EditorPageProps = {
   currentPage: SavedPage | null
   editorState: EditorState
+  imagePreviewUrl: string | null
   imageSourceName: string | null
   isGeneratingFromImage: boolean
   isMissingPage: boolean
   isSaving: boolean
   onBack: () => void
   onChange: (state: EditorState) => void
-  onDelete: (page: SavedPage) => void
   onGenerateFromImage: (file: File) => void
   onSave: () => void
-}
-
-type MetricCardProps = {
-  helpText: string
-  icon: LucideIcon
-  label: string
-  value: string
 }
 
 const blankCreateDraft: CreatePageDraft = {
@@ -218,6 +210,72 @@ function createInitialMarkdown(draft: CreatePageDraft) {
   ].join('\n')
 }
 
+function isMarkdownBlockStart(line: string) {
+  const trimmed = line.trim()
+  return /^(#{1,6}\s|[-*+]\s|\d+\.\s|```|~~~|:::+|>\s?)/.test(trimmed)
+}
+
+function extractPageMeta(markdown: string, fallbackTitle: string): PageMetaDraft {
+  const lines = markdown.split('\n')
+  let cursor = 0
+
+  while (cursor < lines.length && !lines[cursor].trim())
+    cursor += 1
+
+  let title = fallbackTitle.trim() || 'Untitled page'
+  let description = ''
+
+  if (cursor < lines.length) {
+    const headingMatch = lines[cursor].match(/^#\s+(.+)$/)
+    if (headingMatch) {
+      title = headingMatch[1].trim() || title
+      cursor += 1
+
+      while (cursor < lines.length && !lines[cursor].trim())
+        cursor += 1
+
+      const descriptionStart = cursor
+      while (cursor < lines.length && lines[cursor].trim() && !isMarkdownBlockStart(lines[cursor]))
+        cursor += 1
+
+      if (cursor > descriptionStart)
+        description = lines.slice(descriptionStart, cursor).join('\n').trim()
+    }
+  }
+
+  return { title, description }
+}
+
+function applyPageMeta(markdown: string, draft: PageMetaDraft) {
+  const title = draft.title.trim() || 'Untitled page'
+  const description = draft.description.trim()
+  const lines = markdown.split('\n')
+  let cursor = 0
+
+  while (cursor < lines.length && !lines[cursor].trim())
+    cursor += 1
+
+  let body = markdown.trim()
+
+  if (cursor < lines.length && /^#\s+(.+)$/.test(lines[cursor])) {
+    cursor += 1
+
+    while (cursor < lines.length && !lines[cursor].trim())
+      cursor += 1
+
+    while (cursor < lines.length && lines[cursor].trim() && !isMarkdownBlockStart(lines[cursor]))
+      cursor += 1
+
+    body = lines.slice(cursor).join('\n').trim()
+  }
+
+  return [
+    `# ${title}`,
+    description,
+    body,
+  ].filter(Boolean).join('\n\n')
+}
+
 function readFileAsDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
@@ -253,7 +311,7 @@ function PageHeading({
   title,
 }: {
   actions?: ReactNode
-  description: string
+  description?: string
   eyebrow: string
   title: string
 }) {
@@ -263,28 +321,11 @@ function PageHeading({
         <p className="text-sm font-medium text-muted-foreground">{eyebrow}</p>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p>
+          {description && <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p>}
         </div>
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
-  )
-}
-
-function MetricCard({ helpText, icon: Icon, label, value }: MetricCardProps) {
-  return (
-    <Card>
-      <CardHeader className="pb-0">
-        <CardDescription>{label}</CardDescription>
-        <CardAction className="rounded-md border bg-muted/40 p-2">
-          <Icon className="size-4 text-muted-foreground" />
-        </CardAction>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        <p className="text-2xl font-semibold tracking-tight">{value}</p>
-        <p className="text-sm text-muted-foreground">{helpText}</p>
-      </CardContent>
-    </Card>
   )
 }
 
@@ -309,6 +350,68 @@ function FeedbackBanner({
         </Button>
       </CardContent>
     </Card>
+  )
+}
+
+function EditPageInfoDialog({
+  draft,
+  isOpen,
+  onChange,
+  onClose,
+  onSubmit,
+}: {
+  draft: PageMetaDraft
+  isOpen: boolean
+  onChange: (draft: PageMetaDraft) => void
+  onClose: () => void
+  onSubmit: () => void
+}) {
+  const canSubmit = draft.title.trim().length > 0
+
+  return (
+    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>编辑页面信息</DialogTitle>
+          <DialogDescription>
+            修改页面标题和顶部描述。确认后会同步更新当前 Markdown 草稿，仍需点击保存修改才会写入存储。
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-4 py-2">
+          <div className="grid gap-2">
+            <label className="text-sm font-medium" htmlFor="edit-page-title">页面标题</label>
+            <Input
+              id="edit-page-title"
+              value={draft.title}
+              onChange={event => onChange({ ...draft, title: event.target.value })}
+              placeholder="例如：AI 产品周报"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <label className="text-sm font-medium" htmlFor="edit-page-description">页面描述</label>
+            <Textarea
+              id="edit-page-description"
+              rows={5}
+              value={draft.description}
+              onChange={event => onChange({ ...draft, description: event.target.value })}
+              placeholder="会写入 Markdown 标题下方的首段描述。"
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            取消
+          </Button>
+          <Button onClick={onSubmit} disabled={!canSubmit}>
+            <FilePenLine className="size-4" />
+            应用修改
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -414,8 +517,6 @@ function LibraryPage({
   onEditPage,
   pages,
 }: LibraryPageProps) {
-  const latestUpdatedAt = pages[0]?.updatedAt ?? null
-
   return (
     <section className="space-y-6">
       <PageHeading
@@ -429,13 +530,6 @@ function LibraryPage({
           </Button>
         )}
       />
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard icon={Library} label="已保存页面" value={String(pages.length)} helpText="按更新时间排序展示。" />
-        <MetricCard icon={FolderOpen} label="最近更新" value={latestUpdatedAt ? formatTimestamp(latestUpdatedAt) : '暂无'} helpText="最新改动的本地页面。" />
-        <MetricCard icon={BookCopy} label="存储后端" value="localStorage" helpText="仓库接口已抽象，后面可以切到 API。" />
-        <MetricCard icon={Bot} label="AI 生成" value="Gemini" helpText="支持上传图片生成受限 Markdown。" />
-      </div>
 
       <Card>
         <CardHeader>
@@ -521,16 +615,6 @@ function LibraryPage({
                     </TableRow>
                   ))}
                 </TableBody>
-                <TableFooter>
-                  <TableRow>
-                    <TableCell colSpan={5} className="px-4 py-3 font-medium">
-                      共 {pages.length} 个已保存页面
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-right text-muted-foreground">
-                      浏览器存储
-                    </TableCell>
-                  </TableRow>
-                </TableFooter>
               </Table>
             </div>
           )}
@@ -543,20 +627,26 @@ function LibraryPage({
 function EditorPage({
   currentPage,
   editorState,
+  imagePreviewUrl,
   imageSourceName,
   isGeneratingFromImage,
   isMissingPage,
   isSaving,
   onBack,
   onChange,
-  onDelete,
   onGenerateFromImage,
   onSave,
 }: EditorPageProps) {
   const deferredMarkdown = useDeferredValue(editorState.markdown)
-  const isDirty = currentPage
-    ? currentPage.title !== editorState.title || currentPage.markdown !== editorState.markdown
-    : false
+  const [isEditInfoDialogOpen, setIsEditInfoDialogOpen] = useState(false)
+  const [metaDraft, setMetaDraft] = useState<PageMetaDraft>(() =>
+    extractPageMeta(editorState.markdown, editorState.title || (currentPage?.title ?? '')),
+  )
+
+  useEffect(() => {
+    if (!isEditInfoDialogOpen)
+      setMetaDraft(extractPageMeta(editorState.markdown, editorState.title || (currentPage?.title ?? '')))
+  }, [currentPage?.title, editorState.markdown, editorState.title, isEditInfoDialogOpen])
 
   if (isMissingPage) {
     return (
@@ -590,16 +680,39 @@ function EditorPage({
       <PageHeading
         eyebrow="Editor Workspace"
         title={editorState.title || currentPage.title}
-        description={`最近更新于 ${formatTimestamp(currentPage.updatedAt)}。在这个工作区里可以维护标题、Markdown 内容、directive 结构，以及通过图片生成初稿。`}
         actions={(
           <>
-            <span className={cn(
-              'inline-flex items-center rounded-md border px-3 py-2 text-sm',
-              isDirty ? 'border-primary/20 bg-primary/5 text-foreground' : 'text-muted-foreground',
-            )}
+            <Button
+              variant="outline"
+              onClick={() => {
+                setMetaDraft(extractPageMeta(editorState.markdown, editorState.title || currentPage.title))
+                setIsEditInfoDialogOpen(true)
+              }}
             >
-              {isDirty ? '未保存改动' : '已同步'}
-            </span>
+              <FilePenLine className="size-4" />
+              编辑信息
+            </Button>
+            <Button
+              variant="outline"
+              asChild
+              className={cn(isGeneratingFromImage && 'pointer-events-none opacity-50')}
+            >
+              <label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    event.currentTarget.value = ''
+                    if (file)
+                      onGenerateFromImage(file)
+                  }}
+                />
+                <ImageUp className="size-4" />
+                {isGeneratingFromImage ? '识别中...' : '上传图片'}
+              </label>
+            </Button>
             <Button variant="outline" onClick={onBack}>
               返回页面库
             </Button>
@@ -607,116 +720,69 @@ function EditorPage({
               <Save className="size-4" />
               {isSaving ? '保存中...' : '保存修改'}
             </Button>
-            <Button variant="outline" onClick={() => onDelete(currentPage)}>
-              <Trash2 className="size-4" />
-              删除页面
-            </Button>
           </>
         )}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="space-y-6">
-          <Card className="xl:sticky xl:top-24">
-            <CardHeader>
-              <CardTitle>页面设置</CardTitle>
-              <CardDescription>当前页面的标题、存储信息和最近一次图片来源。</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="grid gap-2">
-                <label className="text-sm font-medium" htmlFor="editor-title">页面标题</label>
-                <Input
-                  id="editor-title"
-                  value={editorState.title}
-                  onChange={event => onChange({ ...editorState, title: event.target.value })}
-                />
-              </div>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card className="min-h-[620px]">
+          <CardHeader>
+            <CardTitle>编辑内容</CardTitle>
+            <CardDescription>左侧维护原始 Markdown 和 directive 文本。</CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1">
+            <Textarea
+              className="min-h-[520px] resize-none font-['IBM_Plex_Mono','SFMono-Regular',Consolas,monospace] text-[0.95rem] leading-7"
+              value={editorState.markdown}
+              onChange={event => onChange({ ...editorState, markdown: event.target.value })}
+              spellCheck={false}
+              aria-label="Markdown input"
+            />
+          </CardContent>
+        </Card>
 
-              <div className="rounded-lg border bg-muted/40 p-4">
-                <dl className="space-y-4 text-sm">
-                  <div>
-                    <dt className="font-medium">保存目标</dt>
-                    <dd className="mt-1 text-muted-foreground">浏览器 localStorage</dd>
-                  </div>
-                  <div>
-                    <dt className="font-medium">创建时间</dt>
-                    <dd className="mt-1 text-muted-foreground">{formatTimestamp(currentPage.createdAt)}</dd>
-                  </div>
-                  <div>
-                    <dt className="font-medium">最近更新</dt>
-                    <dd className="mt-1 text-muted-foreground">{formatTimestamp(currentPage.updatedAt)}</dd>
-                  </div>
-                  <div>
-                    <dt className="font-medium">最近一次图片来源</dt>
-                    <dd className="mt-1 break-all text-muted-foreground">{imageSourceName ?? '尚未上传图片'}</dd>
-                  </div>
-                </dl>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>上传图片生成 Markdown</CardTitle>
-              <CardDescription>
-                Gemini 会根据图片内容生成受限 Markdown，自定义组件只允许使用当前项目注册过的 directive。
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button variant="outline" asChild>
-                <label className="w-full">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0]
-                      event.currentTarget.value = ''
-                      if (file)
-                        onGenerateFromImage(file)
-                    }}
+        <Card className="min-h-[620px]">
+          <CardHeader>
+            <CardTitle>渲染预览</CardTitle>
+            <CardDescription>右侧实时展示 Markdown 渲染结果和 directive 组件输出。</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {imagePreviewUrl && (
+              <div className="overflow-hidden rounded-lg border bg-muted/20">
+                <div className="flex items-center justify-between border-b px-4 py-3 text-sm">
+                  <span className="font-medium">参考图片</span>
+                  <span className="max-w-[60%] truncate text-muted-foreground">{imageSourceName}</span>
+                </div>
+                <div className="bg-background p-4">
+                  <img
+                    src={imagePreviewUrl}
+                    alt={imageSourceName ?? 'Uploaded reference'}
+                    className="max-h-[260px] w-full rounded-md object-contain"
                   />
-                  <ImageUp className="size-4" />
-                  {isGeneratingFromImage ? '生成中...' : '上传图片并生成 Markdown'}
-                </label>
-              </Button>
-              <p className="text-sm leading-6 text-muted-foreground">
-                建议上传 5MB 以内的 PNG、JPG、WEBP。生成结果会先覆盖当前编辑区，确认无误后再手动保存。
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-6 2xl:grid-cols-2">
-          <Card className="min-h-[620px]">
-            <CardHeader>
-              <CardTitle>编辑内容</CardTitle>
-              <CardDescription>左侧维护原始 Markdown 和 directive 文本。</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1">
-              <Textarea
-                className="min-h-[520px] resize-none font-['IBM_Plex_Mono','SFMono-Regular',Consolas,monospace] text-[0.95rem] leading-7"
-                value={editorState.markdown}
-                onChange={event => onChange({ ...editorState, markdown: event.target.value })}
-                spellCheck={false}
-                aria-label="Markdown input"
-              />
-            </CardContent>
-          </Card>
-
-          <Card className="min-h-[620px]">
-            <CardHeader>
-              <CardTitle>渲染预览</CardTitle>
-              <CardDescription>右侧实时展示 Markdown 渲染结果和 directive 组件输出。</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="min-h-[520px] rounded-lg border bg-muted/20 px-5 py-5">
-                <MarkdownWithDirective markdown={deferredMarkdown} className={previewClassName} />
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            )}
+
+            <div className="min-h-[520px] rounded-lg border bg-muted/20 px-5 py-5">
+              <MarkdownWithDirective markdown={deferredMarkdown} className={previewClassName} />
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      <EditPageInfoDialog
+        draft={metaDraft}
+        isOpen={isEditInfoDialogOpen}
+        onChange={setMetaDraft}
+        onClose={() => setIsEditInfoDialogOpen(false)}
+        onSubmit={() => {
+          onChange({
+            title: metaDraft.title.trim() || currentPage.title,
+            markdown: applyPageMeta(editorState.markdown, metaDraft),
+          })
+          setIsEditInfoDialogOpen(false)
+        }}
+      />
     </section>
   )
 }
@@ -733,6 +799,7 @@ function App() {
   const [isCreating, setIsCreating] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isGeneratingFromImage, setIsGeneratingFromImage] = useState(false)
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
   const [imageSourceName, setImageSourceName] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -792,6 +859,11 @@ function App() {
     if (route.name === 'editor')
       setIsCreateDialogOpen(false)
   }, [route])
+
+  useEffect(() => {
+    setImagePreviewUrl(null)
+    setImageSourceName(null)
+  }, [currentPage?.id])
 
   async function handleSave() {
     if (!currentPage)
@@ -885,6 +957,9 @@ function App() {
 
     try {
       const imageDataUrl = await readFileAsDataUrl(file)
+      setImagePreviewUrl(imageDataUrl)
+      setImageSourceName(file.name)
+
       const response = await fetch('/api/generate-markdown', {
         method: 'POST',
         headers: {
@@ -904,7 +979,6 @@ function App() {
         title: result.title,
         markdown: result.markdown,
       })
-      setImageSourceName(file.name)
       setFeedback(`已根据图片 ${file.name} 生成 Markdown，请检查后保存。`)
     }
     catch (error) {
@@ -952,12 +1026,6 @@ function App() {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
-        <SidebarFooter>
-          <div className="rounded-lg border bg-muted/40 p-3 text-sm">
-            <p className="font-medium">Storage</p>
-            <p className="mt-1 text-muted-foreground">当前使用浏览器 localStorage，可平滑切到接口层。</p>
-          </div>
-        </SidebarFooter>
         <SidebarRail />
       </Sidebar>
 
@@ -1003,13 +1071,13 @@ function App() {
                 <EditorPage
                   currentPage={currentPage}
                   editorState={editorState}
+                  imagePreviewUrl={imagePreviewUrl}
                   imageSourceName={imageSourceName}
                   isGeneratingFromImage={isGeneratingFromImage}
                   isMissingPage={isMissingPage}
                   isSaving={isSaving}
                   onBack={() => navigate({ name: 'library' })}
                   onChange={setEditorState}
-                  onDelete={setDeleteTarget}
                   onGenerateFromImage={handleGenerateFromImage}
                   onSave={handleSave}
                 />
