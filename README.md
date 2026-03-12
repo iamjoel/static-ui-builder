@@ -8,6 +8,8 @@ It combines three workflows in one app:
 - edit and preview Markdown with validated static directives
 - generate Markdown from reference images with Gemini, then refine the result in the editor
 
+The app now uses clean browser paths such as `/`, `/editor/:pageId`, and `/components/:directiveName`.
+
 ## Features
 
 - Local page library with create, edit, delete, and autosave
@@ -92,7 +94,8 @@ pnpm preview
 
 ### Important Files
 
-- [src/App.tsx](./src/App.tsx): app shell, routes, library page, editor page, and component gallery
+- [src/App.tsx](./src/App.tsx): app entry that mounts the shared app state provider and router
+- [src/router.tsx](./src/router.tsx): TanStack Router route tree and browser history setup
 - [src/components/markdown-with-directive/index.tsx](./src/components/markdown-with-directive/index.tsx): Markdown renderer and directive adapters
 - [src/components/markdown-with-directive/components/markdown-with-directive-schema.ts](./src/components/markdown-with-directive/components/markdown-with-directive-schema.ts): directive registry, validation, and generation guide assembly
 - [server/generate-markdown.ts](./server/generate-markdown.ts): image-to-Markdown API and validation flow
