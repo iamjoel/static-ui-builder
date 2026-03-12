@@ -5,7 +5,7 @@ import DOMPurify from 'dompurify'
 import remarkDirective from 'remark-directive'
 import { defaultRehypePlugins, Streamdown } from 'streamdown'
 import { visit } from 'unist-util-visit'
-import { validateDirectiveProps } from './components/markdown-with-directive-schema'
+import { directiveAllowedTags, validateDirectiveProps } from './components/markdown-with-directive-schema'
 import WithIconCardItem from './components/with-icon-card-item'
 import WithIconCardList from './components/with-icon-card-list'
 
@@ -76,25 +76,20 @@ type SanitizeSchema = {
   [key: string]: unknown
 }
 
-const DIRECTIVE_ALLOWED_TAGS: Record<string, AttributeDefinition[]> = {
-  withiconcardlist: ['className'],
-  withiconcarditem: ['icon', 'className'],
-}
-
 function buildDirectiveRehypePlugins(): PluggableList {
   const [sanitizePlugin, defaultSanitizeSchema]
     = defaultRehypePlugins.sanitize as [Pluggable, SanitizeSchema]
 
   const tagNames = new Set([
     ...(defaultSanitizeSchema.tagNames ?? []),
-    ...Object.keys(DIRECTIVE_ALLOWED_TAGS),
+    ...Object.keys(directiveAllowedTags),
   ])
 
   const attributes: Record<string, AttributeDefinition[]> = {
     ...(defaultSanitizeSchema.attributes ?? {}),
   }
 
-  for (const [tagName, allowedAttributes] of Object.entries(DIRECTIVE_ALLOWED_TAGS))
+  for (const [tagName, allowedAttributes] of Object.entries(directiveAllowedTags))
     attributes[tagName] = [...(attributes[tagName] ?? []), ...allowedAttributes]
 
   const sanitizeSchema: SanitizeSchema = {
